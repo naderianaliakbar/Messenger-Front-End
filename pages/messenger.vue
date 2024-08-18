@@ -116,7 +116,6 @@
 import {ref}              from "vue";
 import {useDisplay}       from "vuetify";
 import Chat               from "~/components/messenger/Chat.vue";
-import {PerfectScrollbar} from "vue3-perfect-scrollbar";
 import Contacts           from "~/components/messenger/Contacts.vue";
 
 definePageMeta({
