@@ -12,10 +12,11 @@
     "@mdi/font": "^7.2.96",
     "jsonwebtoken": "^9.0.2",
     "pinia": "^2.1.4",
-    "pinia-plugin-persistedstate": "^3.1.0",
+    "pinia-plugin-persistedstate": "^3.2.1",
     "sass": "^1.63.6",
     "vee-validate": "^4.10.3",
     "vue3-otp-input": "^0.4.1",
+    "vue3-perfect-scrollbar": "^2.0.0",
     "vue3-persian-datetime-picker": "^1.2.2",
     "vuetify": "^3.5.6"
   },
