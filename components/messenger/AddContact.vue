@@ -138,6 +138,8 @@ const add = async () => {
             $notify('کاربر پیدا نشد. از کاربر دعوت کنید در پیام رسان عضو شود', 'error');
           } else if (response._data.message === 'This contact has already been added') {
             $notify('این مخاطب قبلا اضافه شده است', 'error');
+          }else if (response._data.message === 'You cannot add yourself as a contact') {
+            $notify('شما نمی‌توانید خودتان را به عنوان مخاطب اضافه کنید', 'error');
           } else {
             $notify('مشکلی در ذخیره کردن مخاطب پیش آمد. لطفا دوباره تلاش کنید', 'error');
           }
