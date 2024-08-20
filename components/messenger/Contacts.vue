@@ -142,9 +142,6 @@ const getContacts = () => {
     method: 'get',
     onResponse({response}) {
       if (response.status === 200) {
-        // reset contacts
-        messengerStore.resetContacts();
-
         // add every contact to store
         response._data.list.forEach((contact) => {
           messengerStore.addContact(contact._user._id, {
