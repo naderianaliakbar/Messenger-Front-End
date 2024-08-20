@@ -30,8 +30,8 @@
     </v-row>
 
     <!--  Add Contact   -->
-    <v-row v-if="messengerStore.contacts.length" class="d-flex mt-0 mb-0">
-      <v-list class="w-100 pa-0 border bg-secondary px-8">
+    <v-row v-if="Object.values(messengerStore.contacts).length" class="d-flex mt-0 mb-0">
+      <v-list class="w-100 pa-0 border px-2">
         <v-list-item prepend-icon="mdi-account-plus-outline"
                      @click="addContactDialog = true"
                      value="addContact">
@@ -53,9 +53,10 @@
     </v-row>
 
     <!--  Contacts List    -->
-    <v-list v-if="messengerStore.contacts.length" class="listHeight mt-0 pb-16 overflow-auto">
+    <v-list v-if="Object.values(messengerStore.contacts).length" class="listHeight mt-0 pb-16 overflow-auto">
 
       <v-list-item v-for="(contact, i) in list"
+                   @click="selectContact(contact)"
                    class=""
                    :key="i"
                    :value="contact">
@@ -76,7 +77,7 @@
     </v-list>
 
     <!--  Empty List   -->
-    <v-row v-if="!messengerStore.contacts.length && !loading" class="align-center justify-center h-100 text-subtitle-1">
+    <v-row v-if="!Object.values(messengerStore.contacts).length && !loading" class="align-center justify-center h-100 text-subtitle-1">
       <v-label>هیچ مخاطبی ندارید.</v-label>
       <v-label>میتوانید با کلیک روی دکمه زیر مخاطب اضافه کنید.</v-label>
       <v-btn class="mt-5 rounded-xl"
@@ -99,7 +100,7 @@ import {useMessengerStore} from "~/store/messenger";
 // get messenger store
 const messengerStore = useMessengerStore();
 
-const emit = defineEmits(['exit']);
+const emit = defineEmits(['exit', 'select']);
 
 const closeContactsList = () => {
   emit('exit');
@@ -110,13 +111,13 @@ const addContactDialog = ref(false);
 const search           = ref('');
 
 const list = computed(() => {
-  if(search.value) {
+  if (search.value) {
     let names = search.value.split(' ');
-    return messengerStore.contacts.filter(user => {
+    return Object.values(messengerStore.contacts).filter(user => {
       // Check for different search conditions similar to server-side logic
-      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+      const fullName  = `${user.firstName} ${user.lastName}`.toLowerCase();
       const firstName = user.firstName.toLowerCase();
-      const lastName = user.lastName.toLowerCase();
+      const lastName  = user.lastName.toLowerCase();
 
       return (
           // Search assuming all words are in `first`
@@ -130,7 +131,7 @@ const list = computed(() => {
       );
     });
   } else {
-    return messengerStore.contacts;
+    return Object.values(messengerStore.contacts);
   }
 });
 
@@ -146,13 +147,12 @@ const getContacts = () => {
 
         // add every contact to store
         response._data.list.forEach((contact) => {
-          messengerStore.addContact(
-              contact._user._id,
-              contact.name.first,
-              contact.name.last,
-              contact._user.avatars,
-              contact._user.color
-          );
+          messengerStore.addContact(contact._user._id, {
+            firstName: contact.name.first,
+            lastName : contact.name.last,
+            avatars  : contact._user.avatars,
+            color    : contact._user.color
+          });
         });
 
       }
@@ -160,6 +160,10 @@ const getContacts = () => {
   });
 
   loading.value = false;
+};
+
+const selectContact = (contact) => {
+  emit('select', contact);
 };
 
 // mounted
@@ -173,6 +177,6 @@ onMounted(async () => {
 <style scoped>
 
 .listHeight {
-  height: calc(100vh - 90px)
+  height: calc(100vh - 140px)
 }
 </style>
