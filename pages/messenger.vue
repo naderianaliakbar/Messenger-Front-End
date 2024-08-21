@@ -11,6 +11,7 @@
       <!--   Chats List    -->
       <v-slide-x-transition>
         <Conversations v-show="listAction === 'chats'"
+                       @select="onConversationSelected"
                        @contacts="changeListAction('contacts')">
         </Conversations>
       </v-slide-x-transition>
@@ -37,11 +38,11 @@
 </template>
 
 <script setup>
-import {ref}              from "vue";
-import {useDisplay}       from "vuetify";
-import Chat               from "~/components/messenger/Chat.vue";
-import Contacts           from "~/components/messenger/Contacts.vue";
-import Conversations      from "~/components/messenger/Conversations.vue";
+import {ref}         from "vue";
+import {useDisplay}  from "vuetify";
+import Chat          from "~/components/messenger/Chat.vue";
+import Contacts      from "~/components/messenger/Contacts.vue";
+import Conversations from "~/components/messenger/Conversations.vue";
 
 definePageMeta({
   layout      : 'blank',
@@ -76,12 +77,17 @@ const listAction = ref('chats');
 const chat = ref(null);
 
 const changeListAction = (action) => {
-    listAction.value = action;
+  listAction.value = action;
 };
 
 // on contact selected from contacts list
 const onContactSelected = (contact) => {
   chat.value.setContact(contact._id);
+};
+
+// on contact selected from contacts list
+const onConversationSelected = (conversation) => {
+  chat.value.setConversation(conversation._id);
 };
 
 </script>

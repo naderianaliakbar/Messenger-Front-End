@@ -24,17 +24,15 @@
             <!--    Title    -->
             <v-label class="d-block">
               <!--     Private Chat      -->
-              <span v-if="conversation.type === 'private'">
-            {{ contact.firstName + ' ' + contact.lastName }}
-          </span>
+              <span v-if="conversation.type === 'private'">{{ getConversationName() }}</span>
             </v-label>
 
             <!--   Status   -->
             <v-label class="d-inline-block text-caption">
               <!--     Private Chat     -->
               <span v-if="conversation.type === 'private'">
-            {{ getContactStatus() }}
-          </span>
+                {{ getContactStatus() }}
+               </span>
             </v-label>
           </div>
 
@@ -92,7 +90,9 @@
 import {ref}               from "vue";
 import {useMessengerStore} from "~/store/messenger";
 import {useAPI}            from "~/composables/useAPI";
+import {useCookie}         from "#app";
 
+const user           = useCookie('user');
 const chatLoading    = ref(false);
 const messengerStore = useMessengerStore();
 const form           = ref({
@@ -107,9 +107,21 @@ const conversation   = ref({
   members       : [],
   _pinnedMessage: undefined
 });
-// if conversation type is private
-const contact        = ref(null);
 
+// if conversation type is private
+const contact = ref(null);
+
+const getConversationName = () => {
+  switch (conversation.value.type) {
+    case 'private':
+      if (contact.value) {
+        return contact.value.firstName + ' ' + contact.value.lastName;
+      }
+      break;
+  }
+};
+
+// create conversation when is not exist
 const createConversation = async () => {
   let body = {};
 
@@ -125,7 +137,8 @@ const createConversation = async () => {
     body  : body,
     onResponse({response}) {
       if (response.status === 200) {
-        conversation.value = response._data;
+        messengerStore.addConversation(response._data);
+        setConversation(response._data._id);
       }
     }
   });
@@ -149,7 +162,7 @@ const sendTextMessage = async () => {
       },
       onResponse({response}) {
         if (response.status === 200) {
-
+          messengerStore.addMessage(response._data);
         }
       }
     });
@@ -179,8 +192,29 @@ const setContact = (userId) => {
   contact.value           = messengerStore.contacts[userId];
 };
 
+// set conversation (call from messenger of createConversation)
+const setConversation = (conversationId) => {
+  if (messengerStore.conversations[conversationId]) {
+    conversation.value = messengerStore.conversations[conversationId];
+
+    // private chats need contact
+    switch (conversation.value.type) {
+      case 'private':
+        let contactId = conversation.value.members.find(contact => contact._id !== user.value._id);
+        if (contactId && messengerStore.contacts[contactId]) {
+          contact.value = messengerStore.contacts[contactId];
+        }
+        break;
+    }
+
+  } else {
+    console.log('conversation is not exist');
+  }
+};
+
 defineExpose({
-  setContact
+  setContact,
+  setConversation
 });
 
 </script>

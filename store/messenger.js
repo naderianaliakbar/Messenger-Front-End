@@ -4,11 +4,16 @@ export const useMessengerStore = defineStore('messenger', {
     state() {
         return {
             conversations: {},
-            contacts     : {}
+            contacts     : {},
+            messages     : {}
         }
     },
     actions: {
         addContact(_id, contact) {
+
+            if(!this.contacts[_id])
+                this.contacts[_id] = {};
+
             this.contacts[_id]['_id']       = _id;
             this.contacts[_id]['firstName'] = contact.firstName;
             this.contacts[_id]['lastName']  = contact.lastName;
@@ -33,14 +38,49 @@ export const useMessengerStore = defineStore('messenger', {
                 this.contacts[_id]['lastSeen'] = null;
             }
         },
-        addConversation(_id, conversation) {
-            this.conversations[_id]['_id']         = conversation._id;
-            this.conversations[_id]['type']        = conversation.type;
-            this.conversations[_id]['members']     = conversation.members;
-            this.conversations[_id]['unreadCount'] = conversation.unreadCount;
-            this.conversations[_id]['updatedAt']   = conversation.updatedAt;
+        addConversation(conversation) {
+
+            if (!this.conversations[conversation._id])
+                this.conversations[conversation._id] = {};
+
+            this.conversations[conversation._id]['_id']         = conversation._id;
+            this.conversations[conversation._id]['type']        = conversation.type;
+            this.conversations[conversation._id]['members']     = conversation.members;
+            this.conversations[conversation._id]['unreadCount'] = conversation.unreadCount;
+            this.conversations[conversation._id]['updatedAt']   = new Date(conversation.updatedAt);
+
+            // create messages field if not exists
+            if (!this.messages[conversation._id]) {
+                this.messages[conversation._id] = {};
+            }
 
             // switch for conversation type and set special fields
+
+        },
+        addMessage(message) {
+
+            if (!this.conversations[message._conversation])
+                return;
+
+            // create message array
+            if (!this.messages[message._conversation][message._id])
+                this.messages[message._conversation][message._id] = {};
+
+            this.messages[message._conversation][message._id]['_id']           = message._id;
+            this.messages[message._conversation][message._id]['type']          = message.type;
+            this.messages[message._conversation][message._id]['_sender']       = message._sender;
+            this.messages[message._conversation][message._id]['createdAt']     = new Date(message.createdAt);
+            this.messages[message._conversation][message._id]['updatedAt']     = new Date(message.updatedAt);
+            this.messages[message._conversation][message._id]['_conversation'] = message._conversation;
+            this.messages[message._conversation][message._id]['_readBy']       = message._readBy;
+
+
+            // switch for message type and set special fields
+            switch (message.type) {
+                case 'text':
+                    this.messages[message._conversation][message._id]['content'] = message.content;
+                    break;
+            }
 
         }
     },

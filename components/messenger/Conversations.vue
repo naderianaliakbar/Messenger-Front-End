@@ -72,12 +72,18 @@
     <!--  Chats List    -->
     <v-list class="listHeight mt-0 pb-5 mb-0 overflow-auto">
 
-      <v-list-item v-for="(conversation, i) in Object.values(messengerStore.conversations)"
+      <v-list-item v-for="(conversation, i) in listOfConversations"
+                   @click="selectConversation(conversation)"
                    :key="i"
                    :value="conversation._id">
         <!--    Avatar      -->
         <template v-slot:prepend>
-          <v-avatar size="55" color="blue">A</v-avatar>
+          <UserAvatar v-if="conversation.type === 'private'"
+                      :color="getConversationContact(conversation).color"
+                      :online="getConversationContact(conversation).online"
+                      :firstName="getConversationContact(conversation).firstName"
+                      :lastName="getConversationContact(conversation).lastName"
+                      :avatars="getConversationContact(conversation).avatars"/>
         </template>
 
         <v-list-item-title>
@@ -93,12 +99,12 @@
         <template v-slot:append>
           <v-row class="d-inline-block my-0 py-0">
             <v-col class="my-0 py-0" cols="12">
-              <v-label class="text-caption">{{ conversation.updatedAt }}</v-label>
+              <v-label class="text-caption">{{ getConversationDate(conversation) }}</v-label>
             </v-col>
             <v-col class="my-0 py-0 d-flex justify-center" cols="12">
-              <label v-if="conversation.unreadCount" class="unreadCount bg-secondary">{{
-                  conversation.unreadCount
-                }}</label>
+              <label v-if="conversation.unreadCount" class="unreadCount bg-secondary">
+                {{ conversation.unreadCount }}
+              </label>
             </v-col>
           </v-row>
         </template>
@@ -113,8 +119,10 @@
 import {useAPI}            from "~/composables/useAPI";
 import {useMessengerStore} from "~/store/messenger";
 import {useCookie}         from "#app";
+import PersianDate         from 'persian-date';
+import UserAvatar          from "~/components/messenger/UserAvatar.vue";
 
-const emit = defineEmits(['contacts']);
+const emit = defineEmits(['contacts', 'select']);
 
 const loading    = ref(true);
 const listAction = ref('conversations');
@@ -131,21 +139,82 @@ const changeListAction = (action) => {
   listAction.value = action;
 };
 
+const selectConversation = (conversation) => {
+  emit('select', conversation);
+};
+
+// get sorted list
+const listOfConversations = computed(() => {
+  return Object.entries(messengerStore.conversations)
+      .sort(([, a], [, b]) => a.updatedAt - b.updatedAt)
+      .reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+});
+
+// get conversation contact (just in private conversations)
+const getConversationContact = (conversation) => {
+  switch (conversation.type) {
+    case 'private':
+      let contactId = conversation.members.find(contact => contact._id !== user.value._id);
+      if (contactId && messengerStore.contacts[contactId]) {
+        return messengerStore.contacts[contactId];
+      } else {
+        return {};
+      }
+      break;
+  }
+};
+
 // get name of conversation
 const getConversationName = (conversation) => {
   switch (conversation.type) {
     case 'private':
-      let contactId = conversation.members.find(contact => contact._id !== user.value._id);
-      if (contactId) {
-        return messengerStore.contacts[contactId]['firstName'] + ' ' +
-            messengerStore.contacts[contactId]['lastName'];
+      let contact = getConversationContact(conversation);
+      if (contact) {
+        return contact['firstName'] + ' ' + contact['lastName'];
       }
       break;
   }
 };
 
 const getConversationLastMessage = (conversation) => {
-  if (conversation.messages) {
+  if (messengerStore.messages[conversation._id]) {
+    return Object.values(messengerStore.messages[conversation._id]).reduce((latest, current) => {
+      return current.updatedAt > latest.updatedAt ? current : latest;
+    });
+  } else {
+    return undefined;
+  }
+};
+
+const getConversationDate = (conversation) => {
+  if (conversation.updatedAt) {
+    const nowDate   = new PersianDate();
+    const updatedAt = new PersianDate(conversation.updatedAt);
+
+    // check year
+    if (updatedAt.year() === nowDate.year()) {
+
+      // check month
+      if (updatedAt.month() === nowDate.month()) {
+
+        // check day
+        if (updatedAt.day() !== nowDate.day()) {
+          return updatedAt.toLocale('fa').format('h:mm a');
+        } else {
+          return updatedAt.toLocale('fa').format('D MMMM');
+        }
+
+      } else {
+        return updatedAt.toLocale('fa').format('D MMMM');
+      }
+
+    } else {
+      return updatedAt.toLocale('fa').format('D MMMM YYYY');
+    }
+
 
   } else {
     return undefined;
@@ -159,21 +228,15 @@ const getConversations = () => {
     method: 'get',
     onResponse({response}) {
       if (response.status === 200) {
-        // create temp variable
-        let conversationTemp;
         response._data.list.forEach((conversation) => {
 
-          conversationTemp             = {};
-          conversationTemp._id         = conversation._id;
-          conversationTemp.type        = conversation.type;
-          conversationTemp.members     = conversation.members;
-          conversationTemp.unreadCount = conversation.unreadCount;
-          conversationTemp.updatedAt   = conversation.updatedAt;
+          // add conversation to store
+          messengerStore.addConversation(conversation);
 
-          // switch for conversation type and set special fields
+          // add lastMessage to store
+          if (conversation.lastMessage)
+            messengerStore.addMessage(conversation.lastMessage);
 
-          // add to store
-          messengerStore.addConversation(conversation._id, conversationTemp);
         });
       }
     }
