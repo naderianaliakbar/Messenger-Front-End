@@ -54,7 +54,7 @@ definePageMeta({
 // create page action with screen size
 const {smAndDown} = useDisplay();
 // page action can be list or chat
-const pageAction  = ref('');
+const pageAction  = ref('chat');
 
 // tablet actions is list (at first)
 if (smAndDown) {

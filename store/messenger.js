@@ -11,7 +11,7 @@ export const useMessengerStore = defineStore('messenger', {
     actions: {
         addContact(_id, contact) {
 
-            if(!this.contacts[_id])
+            if (!this.contacts[_id])
                 this.contacts[_id] = {};
 
             this.contacts[_id]['_id']       = _id;
@@ -47,7 +47,7 @@ export const useMessengerStore = defineStore('messenger', {
             this.conversations[conversation._id]['type']        = conversation.type;
             this.conversations[conversation._id]['members']     = conversation.members;
             this.conversations[conversation._id]['unreadCount'] = conversation.unreadCount;
-            this.conversations[conversation._id]['updatedAt']   = new Date(conversation.updatedAt);
+            this.conversations[conversation._id]['updatedAt']   = conversation.updatedAt;
 
             // create messages field if not exists
             if (!this.messages[conversation._id]) {
@@ -69,8 +69,8 @@ export const useMessengerStore = defineStore('messenger', {
             this.messages[message._conversation][message._id]['_id']           = message._id;
             this.messages[message._conversation][message._id]['type']          = message.type;
             this.messages[message._conversation][message._id]['_sender']       = message._sender;
-            this.messages[message._conversation][message._id]['createdAt']     = new Date(message.createdAt);
-            this.messages[message._conversation][message._id]['updatedAt']     = new Date(message.updatedAt);
+            this.messages[message._conversation][message._id]['createdAt']     = message.createdAt;
+            this.messages[message._conversation][message._id]['updatedAt']     = message.updatedAt;
             this.messages[message._conversation][message._id]['_conversation'] = message._conversation;
             this.messages[message._conversation][message._id]['_readBy']       = message._readBy;
 

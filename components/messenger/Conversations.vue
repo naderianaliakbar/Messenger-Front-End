@@ -146,7 +146,7 @@ const selectConversation = (conversation) => {
 // get sorted list
 const listOfConversations = computed(() => {
   return Object.entries(messengerStore.conversations)
-      .sort(([, a], [, b]) => a.updatedAt - b.updatedAt)
+      .sort(([, a], [, b]) => new Date(a.updatedAt) - new Date(b.updatedAt))
       .reduce((acc, [key, value]) => {
         acc[key] = value;
         return acc;
@@ -182,7 +182,7 @@ const getConversationName = (conversation) => {
 const getConversationLastMessage = (conversation) => {
   if (messengerStore.messages[conversation._id]) {
     return Object.values(messengerStore.messages[conversation._id]).reduce((latest, current) => {
-      return current.updatedAt > latest.updatedAt ? current : latest;
+      return new Date(current.updatedAt) > new Date(latest.updatedAt) ? current : latest;
     });
   } else {
     return undefined;

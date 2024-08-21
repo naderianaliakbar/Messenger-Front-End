@@ -1,5 +1,5 @@
 <template>
-  <div class="chatContainer bg-secondary h-100">
+  <div class="chatContainer h-100">
     <!--   Chat Loading  -->
     <v-overlay class="d-flex justify-center align-center"
                v-model="chatLoading"
@@ -9,15 +9,26 @@
       <v-progress-circular size="50" indeterminate></v-progress-circular>
     </v-overlay>
 
+    <!--  Chat background   -->
+    <div class="position-absolute bg-secondary h-100 w-100">
+      <v-img class="chatBg"></v-img>
+    </div>
+
     <!--   Chat   -->
     <v-slide-x-transition>
       <div v-if="conversation.type" class="d-flex flex-column h-100">
 
         <!-- Header -->
-        <div class="border d-flex bg-white">
+        <div class="border d-flex bg-white chatHeader">
 
           <!--   Avatar    -->
-          <v-avatar class="my-3 mr-5" color="blue" size="50">A</v-avatar>
+          <UserAvatar v-if="conversation.type === 'private'"
+                      class="mr-3 mt-1"
+                      :color="contact.color"
+                      :online="contact.online"
+                      :firstName="contact.firstName"
+                      :lastName="contact.lastName"
+                      :avatars="contact.avatars"/>
 
           <!--   Title And Status    -->
           <div class="mr-2 mt-2">
@@ -44,14 +55,50 @@
         </div>
 
         <!--  Chat Content  -->
-        <div class="flex-grow-1 chatContent">
+        <div class="flex-grow-1 d-flex flex-column-reverse mx-1 mx-md-5 chatContent">
+          <!--     Message     -->
+          <div v-for="(message, index) in listOfMessages"
+               class="d-flex mb-1">
 
+            <v-spacer v-if="message._sender !== user._id"></v-spacer>
+
+            <!--    User Avatar  (self)     -->
+            <UserAvatar
+                v-if="message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id))"
+                class="mr-1 ml-1"
+                size="40"
+                :color="contact.color"
+                :online="contact.online"
+                :firstName="contact.firstName"
+                :lastName="contact.lastName"
+                :avatars="contact.avatars">
+            </UserAvatar>
+
+            <!--      Message       -->
+            <v-card class="py-1 px-4 messageContainer" :class="[
+                message._sender === user._id ? 'rounded-bs-lg bg-lime-accent-1' : 'rounded-bs-xl',
+                message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id)) ? '' : 'mr-13'
+            ]" flat>
+              <!--       Content        -->
+              <div v-if="message.type === 'text'" class="text-subtitle-2">{{ message.content }}</div>
+
+              <!--      Date - Edited - Read        -->
+              <div class="float-end mb-n2 ml-n2 messageInfo">
+                <v-icon size="20" class="read mt-1">mdi-check</v-icon>
+                <v-label class="text-caption time">14:11</v-label>
+              </div>
+            </v-card>
+
+          </div>
+          <div class="h-100 ">
+
+          </div>
         </div>
 
         <!--  Chat Form   -->
         <div class="d-flex">
           <v-form class="mx-5 w-100" @submit.prevent="sendTextMessage">
-            <v-text-field class="messageInput"
+            <v-text-field class="rounded-0"
                           v-model="form.text"
                           variant="solo"
                           placeholder="پیام خود را بنویسید..."
@@ -91,6 +138,7 @@ import {ref}               from "vue";
 import {useMessengerStore} from "~/store/messenger";
 import {useAPI}            from "~/composables/useAPI";
 import {useCookie}         from "#app";
+import UserAvatar          from "~/components/messenger/UserAvatar.vue";
 
 const user           = useCookie('user');
 const chatLoading    = ref(false);
@@ -110,6 +158,16 @@ const conversation   = ref({
 
 // if conversation type is private
 const contact = ref(null);
+
+const listOfMessages = computed(() => {
+  const sortedList = Object.entries(messengerStore.messages[conversation.value._id])
+      .sort(([, a], [, b]) => new Date(b.createdAt) - new Date(a.createdAt))
+      .reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+  return Object.values(sortedList);
+});
 
 const getConversationName = () => {
   switch (conversation.value.type) {
@@ -219,19 +277,35 @@ defineExpose({
 
 </script>
 
-<style scoped>
-.chatContainer {
+<style lang="scss" scoped>
+.chatBg {
+  z-index: 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
   background-image: url('/img/chatbg.png');
-  background-repeat: repeat-x;
-
+  background-repeat: repeat;
+  opacity: 40%;
 }
-
 .chatContent {
+  overflow: scroll;
 
+
+  .messageContainer {
+    max-width: 80% !important;
+
+    .messageInfo {
+      margin-top: -10px !important;
+      position: relative;
+
+      .time {
+        font-size: 0.6rem !important;
+      }
+    }
+  }
 }
-
-.messageInput {
-  border-radius: 0px !important;
+.chatHeader {
+  z-index: 2;
 }
 
 .sendIcon {
