@@ -90,7 +90,8 @@
           {{ getConversationName(conversation) }}
         </v-list-item-title>
 
-        <v-list-item-subtitle v-if="getConversationLastMessage(conversation)" class="w-100">
+        <v-list-item-subtitle v-if="getConversationLastMessage(conversation)"
+                              class="w-100">
           <span v-if="getConversationLastMessage(conversation).type === 'text'">
             {{ getConversationLastMessage(conversation).content }}
           </span>
@@ -157,11 +158,9 @@ const listOfConversations = computed(() => {
 const getConversationContact = (conversation) => {
   switch (conversation.type) {
     case 'private':
-      let contactId = conversation.members.find(contact => contact._id !== user.value._id);
-      if (contactId && messengerStore.contacts[contactId]) {
-        return messengerStore.contacts[contactId];
-      } else {
-        return {};
+      let contactId = conversation.members.find(userId => userId !== user.value._id);
+      if (contactId) {
+        return messengerStore.users[contactId];
       }
       break;
   }
@@ -180,7 +179,7 @@ const getConversationName = (conversation) => {
 };
 
 const getConversationLastMessage = (conversation) => {
-  if (messengerStore.messages[conversation._id]) {
+  if (messengerStore.messages[conversation._id] && Object.values(messengerStore.messages[conversation._id]).length) {
     return Object.values(messengerStore.messages[conversation._id]).reduce((latest, current) => {
       return new Date(current.updatedAt) > new Date(latest.updatedAt) ? current : latest;
     });
@@ -192,7 +191,7 @@ const getConversationLastMessage = (conversation) => {
 const getConversationDate = (conversation) => {
   if (conversation.updatedAt) {
     const nowDate   = new PersianDate();
-    const updatedAt = new PersianDate(conversation.updatedAt);
+    const updatedAt = new PersianDate(new Date(conversation.updatedAt));
 
     // check year
     if (updatedAt.year() === nowDate.year()) {
@@ -201,7 +200,7 @@ const getConversationDate = (conversation) => {
       if (updatedAt.month() === nowDate.month()) {
 
         // check day
-        if (updatedAt.day() !== nowDate.day()) {
+        if (updatedAt.day() === nowDate.day()) {
           return updatedAt.toLocale('fa').format('h:mm a');
         } else {
           return updatedAt.toLocale('fa').format('D MMMM');
@@ -232,6 +231,13 @@ const getConversations = () => {
 
           // add conversation to store
           messengerStore.addConversation(conversation);
+
+          // add users of conversation
+          if(conversation.memberDetails) {
+            conversation.memberDetails.forEach((user) => {
+              messengerStore.addUser(user);
+            });
+          }
 
           // add lastMessage to store
           if (conversation.lastMessage)

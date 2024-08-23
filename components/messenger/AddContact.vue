@@ -85,6 +85,7 @@ import {useAPI}     from "~/composables/useAPI";
 import {useNuxtApp} from "#app";
 
 const {$notify} = useNuxtApp();
+const emit = defineEmits(['refresh','exit']);
 
 const rules = {
   notEmpty: (value) => (value ? true : 'پر کردن این فیلد اجباری است'),
@@ -132,6 +133,8 @@ const add = async () => {
     onResponse({response}) {
       if (response.status === 200) {
         $notify('مخاطب اضافه شد', 'success');
+        emit('refresh');
+        emit('exit');
       } else if (response.status === 400) {
         if (response._data && response._data.message) {
           if (response._data.message === 'User Not Found') {

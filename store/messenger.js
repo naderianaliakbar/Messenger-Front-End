@@ -1,41 +1,42 @@
 import {defineStore} from "pinia";
+import {useAPI}      from "~/composables/useAPI";
 
 export const useMessengerStore = defineStore('messenger', {
     state() {
         return {
             conversations: {},
-            contacts     : {},
-            messages     : {}
+            messages     : {},
+            users        : {}
         }
     },
     actions: {
-        addContact(_id, contact) {
+        addUser(user) {
 
-            if (!this.contacts[_id])
-                this.contacts[_id] = {};
+            if (!this.users[user._id])
+                this.users[user._id] = {};
 
-            this.contacts[_id]['_id']       = _id;
-            this.contacts[_id]['firstName'] = contact.firstName;
-            this.contacts[_id]['lastName']  = contact.lastName;
-            this.contacts[_id]['avatars']   = contact.avatars;
-            this.contacts[_id]['color']     = contact.color;
+            this.users[user._id]['_id']       = user._id;
+            this.users[user._id]['firstName'] = user.name.first;
+            this.users[user._id]['lastName']  = user.name.last;
+            this.users[user._id]['avatars']   = user.avatars;
+            this.users[user._id]['color']     = user.color;
 
             // add online field
-            if (!this.contacts[_id]['online']) {
-                this.contacts[_id]['online'] = false;
+            if (!this.users[user._id]['online']) {
+                this.users[user._id]['online'] = false;
             }
 
             // add status field
-            if (!this.contacts[_id]['status']) {
-                this.contacts[_id]['status'] = {
+            if (!this.users[user._id]['status']) {
+                this.users[user._id]['status'] = {
                     operation    : '', // isTyping - sendFile - sendVoice
                     _conversation: '' // conversation _id
                 };
             }
 
             // add lastSeen field
-            if (!this.contacts[_id]['lastSeen']) {
-                this.contacts[_id]['lastSeen'] = null;
+            if (!this.users[user._id]['lastSeen']) {
+                this.users[user._id]['lastSeen'] = null;
             }
         },
         addConversation(conversation) {
@@ -82,7 +83,7 @@ export const useMessengerStore = defineStore('messenger', {
                     break;
             }
 
-        }
+        },
     },
     persist: true
 });

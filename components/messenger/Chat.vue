@@ -21,6 +21,14 @@
         <!-- Header -->
         <div class="border d-flex bg-white chatHeader">
 
+          <v-btn v-if="smAndDown"
+                 @click="closeChat"
+                 class="mt-3 mr-2"
+                 variant="text"
+                 icon>
+            <v-icon>mdi-arrow-right</v-icon>
+          </v-btn>
+
           <!--   Avatar    -->
           <UserAvatar v-if="conversation.type === 'private'"
                       class="mr-3 mt-1"
@@ -55,9 +63,16 @@
         </div>
 
         <!--  Chat Content  -->
-        <div class="flex-grow-1 d-flex flex-column-reverse mx-1 mx-md-5 chatContent">
-          <!--     Message     -->
-          <div v-for="(message, index) in listOfMessages"
+        <div class="flex-grow-1 d-flex flex-column-reverse pr-6 pb-2 pl-4 chatContent">
+
+          <!--     Messages Loading      -->
+          <div v-if="messagesLoading" class="d-flex align-center justify-center">
+            <v-progress-circular color="white" indeterminate></v-progress-circular>
+          </div>
+
+          <!--     Messages    -->
+          <div v-if="conversation._id"
+               v-for="(message, index) in listOfMessages"
                class="d-flex mb-1">
 
             <v-spacer v-if="message._sender !== user._id"></v-spacer>
@@ -67,17 +82,18 @@
                 v-if="message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id))"
                 class="mr-1 ml-1"
                 size="40"
-                :color="contact.color"
-                :online="contact.online"
-                :firstName="contact.firstName"
-                :lastName="contact.lastName"
-                :avatars="contact.avatars">
+                :color="user.color"
+                :online="user.online"
+                :firstName="user.firstName"
+                :lastName="user.lastName"
+                :avatars="user.avatars">
             </UserAvatar>
 
             <!--      Message       -->
             <v-card class="py-1 px-4 messageContainer" :class="[
-                message._sender === user._id ? 'rounded-bs-lg bg-lime-accent-1' : 'rounded-bs-xl',
-                message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id)) ? '' : 'mr-13'
+                message._sender === user._id ? 'rounded-bs-lg bg-lime-accent-1' : 'rounded-bs-lg',
+                message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id)) ? '' : 'mr-12',
+                conversation.type === 'private' && message._sender === contact._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== contact._id)) ? '' : 'ml-12'
             ]" flat>
               <!--       Content        -->
               <div v-if="message.type === 'text'" class="text-subtitle-2">{{ message.content }}</div>
@@ -85,14 +101,26 @@
               <!--      Date - Edited - Read        -->
               <div class="float-end mb-n2 ml-n2 messageInfo">
                 <v-icon size="20" class="read mt-1">mdi-check</v-icon>
-                <v-label class="text-caption time">14:11</v-label>
+                <v-label class="text-caption time">
+                  {{ new PersianDate(new Date(message.createdAt)).toLocale('fa').format('h:mm a') }}
+                </v-label>
               </div>
             </v-card>
 
-          </div>
-          <div class="h-100 ">
+            <!--    User Avatar    -->
+            <UserAvatar
+                v-if="message._sender !== user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== message._sender))"
+                class="mr-1 ml-1"
+                size="40"
+                :color="messengerStore.users[message._sender].color"
+                :online="messengerStore.users[message._sender].online"
+                :firstName="messengerStore.users[message._sender].firstName"
+                :lastName="messengerStore.users[message._sender].lastName"
+                :avatars="messengerStore.users[message._sender].avatars">
+            </UserAvatar>
 
           </div>
+
         </div>
 
         <!--  Chat Form   -->
@@ -116,7 +144,7 @@
                   </v-btn>
 
                   <!--       Send       -->
-                  <v-btn color="secondary">
+                  <v-btn color="secondary" @click="sendTextMessage" type="submit">
                     ارسال
                     <template v-slot:append>
                       <v-icon class="sendIcon">mdi-send-outline</v-icon>
@@ -134,30 +162,34 @@
 </template>
 
 <script setup>
-import {ref}               from "vue";
+import {ref, watch}        from "vue";
 import {useMessengerStore} from "~/store/messenger";
 import {useAPI}            from "~/composables/useAPI";
 import {useCookie}         from "#app";
 import UserAvatar          from "~/components/messenger/UserAvatar.vue";
+import {useDisplay}        from "vuetify";
+import PersianDate         from "persian-date";
 
-const user           = useCookie('user');
-const chatLoading    = ref(false);
-const messengerStore = useMessengerStore();
-const form           = ref({
+const emit            = defineEmits(['exit']);
+const {smAndDown}     = useDisplay();
+const user            = useCookie('user');
+const chatLoading     = ref(false);
+const messengerStore  = useMessengerStore();
+const form            = ref({
   _id            : '',
   action         : 'add',
   text           : '',
   _replyToMessage: undefined
 });
-const conversation   = ref({
+const conversation    = ref({
   _id           : '',
   type          : '',
   members       : [],
   _pinnedMessage: undefined
 });
-
+const messagesLoading = ref(false);
 // if conversation type is private
-const contact = ref(null);
+const contact         = ref(null);
 
 const listOfMessages = computed(() => {
   const sortedList = Object.entries(messengerStore.messages[conversation.value._id])
@@ -166,9 +198,17 @@ const listOfMessages = computed(() => {
         acc[key] = value;
         return acc;
       }, {});
+
   return Object.values(sortedList);
 });
 
+
+// close chat in smAndDown
+const closeChat = () => {
+  emit('exit');
+};
+
+// get conversation name in different type of conversations
 const getConversationName = () => {
   switch (conversation.value.type) {
     case 'private':
@@ -177,6 +217,41 @@ const getConversationName = () => {
       }
       break;
   }
+};
+
+// get contact status in private chats
+const getContactStatus = () => {
+  if (contact.value.status.operation && contact.value.status._conversation === conversation.value._id) {
+    switch (contact.value.status.operation) {
+      case 'isTyping':
+        return 'در حال نوشتن...';
+        break;
+    }
+  } else {
+    if (contact.value.online) {
+      return 'آنلاین';
+    } else {
+      return contact.value.lastSeen ?? 'آخرین بازدید اخیرا';
+    }
+  }
+};
+
+// get conversation messages
+const getMessages = async () => {
+  messagesLoading.value = true;
+
+  await useAPI('conversations/' + conversation.value._id + '/messages', {
+    method: 'get',
+    onResponse({response}) {
+      if (response.status === 200) {
+        response._data.list.forEach((message) => {
+          messengerStore.addMessage(message);
+        });
+      }
+    }
+  });
+
+  messagesLoading.value = false;
 };
 
 // create conversation when is not exist
@@ -220,6 +295,8 @@ const sendTextMessage = async () => {
       },
       onResponse({response}) {
         if (response.status === 200) {
+          form.value.text            = '';
+          form.value._replyToMessage = '';
           messengerStore.addMessage(response._data);
         }
       }
@@ -227,27 +304,21 @@ const sendTextMessage = async () => {
   }
 };
 
-// get contact status in private chats
-const getContactStatus = () => {
-  if (contact.value.status.operation && contact.value.status._conversation === conversation.value._id) {
-    switch (contact.value.status.operation) {
-      case 'isTyping':
-        return 'در حال نوشتن...';
-        break;
-    }
-  } else {
-    if (contact.value.online) {
-      return 'آنلاین';
-    } else {
-      return contact.value.lastSeen ?? 'آخرین بازدید اخیرا';
-    }
-  }
-};
-
 // set contact (call from messenger for set receiver)
 const setContact = (userId) => {
+  conversation.value = {};
   conversation.value.type = 'private';
-  contact.value           = messengerStore.contacts[userId];
+  contact.value           = messengerStore.users[userId];
+
+  // find for conversation
+  const conversationFound = Object.values(messengerStore.conversations).find(
+      cn => cn.type === 'private' && cn.members.includes(userId)
+  );
+  console.log(userId);
+  console.log(Object.values(messengerStore.conversations));
+  if(conversationFound)
+    setConversation(conversationFound._id);
+
 };
 
 // set conversation (call from messenger of createConversation)
@@ -258,9 +329,9 @@ const setConversation = (conversationId) => {
     // private chats need contact
     switch (conversation.value.type) {
       case 'private':
-        let contactId = conversation.value.members.find(contact => contact._id !== user.value._id);
-        if (contactId && messengerStore.contacts[contactId]) {
-          contact.value = messengerStore.contacts[contactId];
+        let contactId = conversation.value.members.find(userId => userId !== user.value._id);
+        if (contactId) {
+          contact.value = messengerStore.users[contactId];
         }
         break;
     }
@@ -269,6 +340,13 @@ const setConversation = (conversationId) => {
     console.log('conversation is not exist');
   }
 };
+
+// watch
+watch(conversation, () => {
+  // load conversation messages
+  if (conversation.value._id)
+    getMessages();
+});
 
 defineExpose({
   setContact,
@@ -287,6 +365,7 @@ defineExpose({
   background-repeat: repeat;
   opacity: 40%;
 }
+
 .chatContent {
   overflow: scroll;
 
@@ -304,6 +383,7 @@ defineExpose({
     }
   }
 }
+
 .chatHeader {
   z-index: 2;
 }

@@ -2,7 +2,7 @@
   <div>
 
     <!--  Add Contact Dialog   -->
-    <AddContact v-model="addContactDialog"/>
+    <AddContact v-model="addContactDialog" @refresh="getContacts" @exit="addContactDialog = false"/>
 
     <!--   Search And Back    -->
     <v-row class="d-flex border pt-2 pb-2 mb-0 px-4 mx-0">
@@ -17,20 +17,42 @@
 
       <!--   Search   -->
       <v-text-field class="mt-1 ml-2 mb-2 mb-0 d-block"
+                    v-if="searchFlag"
                     v-model="search"
                     prepend-inner-icon="mdi-magnify"
+                    append-inner-icon="mdi-close"
+                    @click:append-inner="searchFlag = false"
                     label="جستجو"
                     placeholder="وارد کنید"
                     variant="outlined"
                     density="compact"
                     single-line
                     hide-details>
-
       </v-text-field>
+
+      <!--   Loading    -->
+      <v-label v-if="loading && !searchFlag">در حال به روز رسانی...</v-label>
+
+      <v-label v-if="!searchFlag" class="mt-2">
+        مخاطبین
+      </v-label>
+
+      <v-spacer v-if="!searchFlag"></v-spacer>
+
+      <!--   Search Toggle    -->
+      <v-btn class="float-end mt-2 mb-2"
+             v-if="!searchFlag"
+             @click="searchFlag = true"
+             variant="text"
+             size="small"
+             icon>
+        <v-icon>mdi-magnify</v-icon>
+      </v-btn>
+
     </v-row>
 
     <!--  Add Contact   -->
-    <v-row v-if="Object.values(messengerStore.contacts).length" class="d-flex mt-0 mb-0">
+    <v-row v-if="list.length" class="d-flex mt-0 mb-0">
       <v-list class="w-100 pa-0 border px-2">
         <v-list-item prepend-icon="mdi-account-plus-outline"
                      @click="addContactDialog = true"
@@ -40,35 +62,23 @@
       </v-list>
     </v-row>
 
-    <!--  Loading   -->
-    <v-row v-if="loading" class="d-flex mt-0 mb-0">
-      <v-list class="w-100 pa-0 border px-8 bg-blue">
-        <v-list-item value="loading">
-          در حال به روز رسانی...
-          <template v-slot:prepend>
-            <v-progress-circular class="ml-4" indeterminate></v-progress-circular>
-          </template>
-        </v-list-item>
-      </v-list>
-    </v-row>
-
     <!--  Contacts List    -->
-    <v-list v-if="Object.values(messengerStore.contacts).length" class="listHeight mt-0 pb-16 overflow-auto">
+    <v-list v-if="list.length" class="listHeight mt-0 pb-16 overflow-auto">
 
       <v-list-item v-for="(contact, i) in list"
-                   @click="selectContact(contact)"
+                   @click="selectContact(contact._user._id)"
                    class=""
                    :key="i"
                    :value="contact">
         <!--    Avatar      -->
         <template v-slot:prepend>
           <v-avatar size="55" color="blue">
-            {{ contact.firstName.substr(0, 1) + contact.lastName.substr(0, 1) }}
+            {{ contact.name.first.substr(0, 1) + contact.name.last.substr(0, 1) }}
           </v-avatar>
         </template>
 
         <v-list-item-title>
-          {{ contact.firstName + ' ' + contact.lastName }}
+          {{ contact.name.first + ' ' + contact.name.last }}
         </v-list-item-title>
 
 
@@ -77,15 +87,17 @@
     </v-list>
 
     <!--  Empty List   -->
-    <v-row v-if="!Object.values(messengerStore.contacts).length && !loading" class="align-center justify-center h-100 text-subtitle-1">
-      <v-label>هیچ مخاطبی ندارید.</v-label>
-      <v-label>میتوانید با کلیک روی دکمه زیر مخاطب اضافه کنید.</v-label>
-      <v-btn class="mt-5 rounded-xl"
-             prepend-icon="mdi-account-plus-outline"
-             @click="addContactDialog = true"
-             color="secondary">
-        افزودن مخاطب
-      </v-btn>
+    <v-row v-if="!list.length && !loading && !searchFlag" class="h-100 text-subtitle-1">
+      <v-col cols="12" class="text-center my-0">هیچ مخاطبی ندارید.</v-col>
+      <v-col cols="12" class="text-center my-n5">میتوانید با کلیک روی دکمه زیر مخاطب اضافه کنید.</v-col>
+      <v-col cols="12" class="text-center">
+        <v-btn class="mt-5 rounded-xl"
+               prepend-icon="mdi-account-plus-outline"
+               @click="addContactDialog = true"
+               color="secondary">
+          افزودن مخاطب
+        </v-btn>
+      </v-col>
     </v-row>
 
   </div>
@@ -109,11 +121,13 @@ const closeContactsList = () => {
 const loading          = ref(true);
 const addContactDialog = ref(false);
 const search           = ref('');
+const searchFlag       = ref(false);
+const contacts         = ref([]);
 
 const list = computed(() => {
   if (search.value) {
     let names = search.value.split(' ');
-    return Object.values(messengerStore.contacts).filter(user => {
+    return contacts.value.filter(user => {
       // Check for different search conditions similar to server-side logic
       const fullName  = `${user.firstName} ${user.lastName}`.toLowerCase();
       const firstName = user.firstName.toLowerCase();
@@ -131,7 +145,7 @@ const list = computed(() => {
       );
     });
   } else {
-    return Object.values(messengerStore.contacts);
+    return contacts.value;
   }
 });
 
@@ -143,15 +157,10 @@ const getContacts = () => {
     onResponse({response}) {
       if (response.status === 200) {
         // add every contact to store
+        contacts.value = response._data.list;
         response._data.list.forEach((contact) => {
-          messengerStore.addContact(contact._user._id, {
-            firstName: contact.name.first,
-            lastName : contact.name.last,
-            avatars  : contact._user.avatars,
-            color    : contact._user.color
-          });
-        });
-
+          messengerStore.addUser(contact)
+        })
       }
     }
   });
