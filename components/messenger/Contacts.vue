@@ -8,7 +8,7 @@
     <v-row class="d-flex border pt-2 pb-2 mb-0 px-4 mx-0">
 
       <!--    Menu Button    -->
-      <v-btn class="mt-1 mr-1 ml-2"
+      <v-btn class="mr-1 ml-2"
              @click="closeContactsList"
              variant="plain"
              icon>
@@ -16,7 +16,7 @@
       </v-btn>
 
       <!--   Search   -->
-      <v-text-field class="mt-1 ml-2 mb-2 mb-0 d-block"
+      <v-text-field class="ml-2 mt-1 mb-0 d-block"
                     v-if="searchFlag"
                     v-model="search"
                     prepend-inner-icon="mdi-magnify"
@@ -33,14 +33,14 @@
       <!--   Loading    -->
       <v-label v-if="loading && !searchFlag">در حال به روز رسانی...</v-label>
 
-      <v-label v-if="!searchFlag" class="mt-2">
+      <v-label v-if="!searchFlag" class="">
         مخاطبین
       </v-label>
 
       <v-spacer v-if="!searchFlag"></v-spacer>
 
       <!--   Search Toggle    -->
-      <v-btn class="float-end mt-2 mb-2"
+      <v-btn class="float-end mt-1"
              v-if="!searchFlag"
              @click="searchFlag = true"
              variant="text"
@@ -52,7 +52,7 @@
     </v-row>
 
     <!--  Add Contact   -->
-    <v-row v-if="list.length" class="d-flex mt-0 mb-0">
+    <v-row v-if="contacts.length" class="d-flex mt-0 mb-0">
       <v-list class="w-100 pa-0 border px-2">
         <v-list-item prepend-icon="mdi-account-plus-outline"
                      @click="addContactDialog = true"
@@ -135,8 +135,8 @@ const list = computed(() => {
     return contacts.value.filter(user => {
       // Check for different search conditions similar to server-side logic
       const fullName  = `${user.firstName} ${user.lastName}`.toLowerCase();
-      const firstName = user.firstName.toLowerCase();
-      const lastName  = user.lastName.toLowerCase();
+      const firstName = user.name.first.toLowerCase();
+      const lastName  = user.name.last.toLowerCase();
 
       return (
           // Search assuming all words are in `first`

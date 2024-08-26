@@ -4,7 +4,7 @@
     <v-row class="d-flex border pt-2 pb-2 mb-0 px-4 mx-0">
 
       <!--    Menu Button    -->
-      <v-btn class="mt-1 mr-1 ml-2"
+      <v-btn class="mr-1 ml-2"
              @click=""
              variant="plain"
              icon>
@@ -36,13 +36,13 @@
 
       <v-label v-if="loading && listAction === 'conversations'">در حال به روز رسانی...</v-label>
 
-      <v-label v-if="listAction === 'conversations'" class="mt-2">
+      <v-label v-if="listAction === 'conversations'">
         پیام رسان
       </v-label>
 
       <!--      Search      -->
       <v-text-field v-if="listAction === 'search'"
-                    class="mt-1 ml-2 mb-2 mb-0"
+                    class="mt-1 ml-2 mb-0"
                     prepend-inner-icon="mdi-magnify"
                     append-inner-icon="mdi-close"
                     @click:append-inner="changeListAction('conversations')"
@@ -58,7 +58,7 @@
       <v-spacer v-if="listAction === 'conversations'"></v-spacer>
 
       <!--   Search Toggle    -->
-      <v-btn class="float-end mt-2 mb-2"
+      <v-btn class="float-end mt-1"
              v-if="listAction === 'conversations'"
              @click="changeListAction('search')"
              variant="text"
