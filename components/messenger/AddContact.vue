@@ -16,43 +16,43 @@
       <v-form ref="addContactForm" @submit.prevent="submit">
 
         <!--    Avatar And firstName And lastName     -->
-        <v-row class="mx-5">
+<!--        <v-row class="mx-5">-->
 
-          <!--     FirstName And LastName      -->
-          <v-col cols="8">
+<!--          &lt;!&ndash;     FirstName And LastName      &ndash;&gt;-->
+<!--          <v-col cols="8">-->
 
-            <!--      FirstName       -->
-            <v-text-field class=""
-                          v-model="form.firstName"
-                          label="نام"
-                          :rules="[rules.notEmpty]"
-                          variant="outlined"
-                          density="compact">
+<!--            &lt;!&ndash;      FirstName       &ndash;&gt;-->
+<!--            <v-text-field class=""-->
+<!--                          v-model="form.firstName"-->
+<!--                          label="نام"-->
+<!--                          :rules="[rules.notEmpty]"-->
+<!--                          variant="outlined"-->
+<!--                          density="compact">-->
 
-            </v-text-field>
+<!--            </v-text-field>-->
 
-            <!--     LastName       -->
-            <v-text-field class=""
-                          v-model="form.lastName"
-                          label="نام خانوادگی"
-                          :rules="[rules.notEmpty]"
-                          variant="outlined"
-                          density="compact">
+<!--            &lt;!&ndash;     LastName       &ndash;&gt;-->
+<!--            <v-text-field class=""-->
+<!--                          v-model="form.lastName"-->
+<!--                          label="نام خانوادگی"-->
+<!--                          :rules="[rules.notEmpty]"-->
+<!--                          variant="outlined"-->
+<!--                          density="compact">-->
 
-            </v-text-field>
+<!--            </v-text-field>-->
 
-          </v-col>
+<!--          </v-col>-->
 
-          <!--    Avatar      -->
-          <v-col cols="4">
-            <v-avatar color="secondary" size="100">
-              {{ form.firstName.substr(0,1) + form.lastName.substr(0,1) }}
-            </v-avatar>
-          </v-col>
+<!--          &lt;!&ndash;    Avatar      &ndash;&gt;-->
+<!--          <v-col cols="4">-->
+<!--            <v-avatar color="secondary" size="100">-->
+<!--              {{ form.firstName.substr(0,1) + form.lastName.substr(0,1) }}-->
+<!--            </v-avatar>-->
+<!--          </v-col>-->
 
-        </v-row>
+<!--        </v-row>-->
 
-        <v-row class="mx-8 mt-0">
+        <v-row class="mx-8 mt-2">
           <!--      Phone       -->
           <v-text-field class=""
                         v-model="form.phone"
@@ -85,6 +85,7 @@ import {useAPI}     from "~/composables/useAPI";
 import {useNuxtApp} from "#app";
 
 const {$notify} = useNuxtApp();
+const emit = defineEmits(['refresh','exit']);
 
 const rules = {
   notEmpty: (value) => (value ? true : 'پر کردن این فیلد اجباری است'),
@@ -125,13 +126,15 @@ const add = async () => {
   await useAPI('contacts', {
     method: 'post',
     body  : {
-      firstName: form.value.firstName,
-      lastName : form.value.lastName,
+      // firstName: form.value.firstName,
+      // lastName : form.value.lastName,
       phone    : form.value.phone,
     },
     onResponse({response}) {
       if (response.status === 200) {
         $notify('مخاطب اضافه شد', 'success');
+        emit('refresh');
+        emit('exit');
       } else if (response.status === 400) {
         if (response._data && response._data.message) {
           if (response._data.message === 'User Not Found') {

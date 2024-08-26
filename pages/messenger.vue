@@ -31,7 +31,7 @@
            class="position-relative border py-0 px-0"
            cols="12"
            md="9">
-      <Chat ref="chat"/>
+      <Chat ref="chat" @exit="changePageAction('list')"/>
     </v-col>
 
   </v-row>
@@ -54,7 +54,7 @@ definePageMeta({
 // create page action with screen size
 const {smAndDown} = useDisplay();
 // page action can be list or chat
-const pageAction  = ref('chat');
+const pageAction  = ref('');
 
 // tablet actions is list (at first)
 if (smAndDown) {
@@ -80,14 +80,20 @@ const changeListAction = (action) => {
   listAction.value = action;
 };
 
+const changePageAction = (action) => {
+  pageAction.value = action;
+};
+
 // on contact selected from contacts list
 const onContactSelected = (contact) => {
   chat.value.setContact(contact._id);
+  changePageAction('chat');
 };
 
 // on contact selected from contacts list
 const onConversationSelected = (conversation) => {
   chat.value.setConversation(conversation._id);
+  changePageAction('chat');
 };
 
 </script>
