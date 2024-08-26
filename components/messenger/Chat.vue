@@ -19,7 +19,7 @@
       <div v-if="conversation.type" class="d-flex flex-column h-100">
 
         <!-- Header -->
-        <div class="border d-flex bg-white chatHeader">
+        <div class="border d-flex bg-white chatHeader pb-1">
 
           <v-btn v-if="smAndDown"
                  @click="closeChat"
@@ -31,7 +31,7 @@
 
           <!--   Avatar    -->
           <UserAvatar v-if="conversation.type === 'private'"
-                      class="mr-3 mt-1"
+                      class="mr-3"
                       :color="contact.color"
                       :online="contact.online"
                       :firstName="contact.firstName"

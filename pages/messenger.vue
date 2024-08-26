@@ -43,6 +43,7 @@ import {useDisplay}  from "vuetify";
 import Chat          from "~/components/messenger/Chat.vue";
 import Contacts      from "~/components/messenger/Contacts.vue";
 import Conversations from "~/components/messenger/Conversations.vue";
+import {useNuxtApp}  from "#app";
 
 definePageMeta({
   layout      : 'blank',
@@ -50,6 +51,12 @@ definePageMeta({
   requiresAuth: true,
   // requiresRole: 'admin'
 });
+
+// get Nuxt App Functions
+const {$notify, $createSocketConnection, $getSocketConnection} = useNuxtApp();
+
+// create socket connection
+$createSocketConnection();
 
 // create page action with screen size
 const {smAndDown} = useDisplay();
