@@ -38,12 +38,13 @@
 </template>
 
 <script setup>
-import {ref}         from "vue";
-import {useDisplay}  from "vuetify";
-import Chat          from "~/components/messenger/Chat.vue";
-import Contacts      from "~/components/messenger/Contacts.vue";
-import Conversations from "~/components/messenger/Conversations.vue";
-import {useNuxtApp}  from "#app";
+import {ref}               from "vue";
+import {useDisplay}        from "vuetify";
+import Chat                from "~/components/messenger/Chat.vue";
+import Contacts            from "~/components/messenger/Contacts.vue";
+import Conversations       from "~/components/messenger/Conversations.vue";
+import {useNuxtApp}        from "#app";
+import {useMessengerStore} from "~/store/messenger";
 
 definePageMeta({
   layout      : 'blank',
@@ -55,8 +56,8 @@ definePageMeta({
 // get Nuxt App Functions
 const {$notify, $getSocketConnection, $destroySocketConnection} = useNuxtApp();
 
-// create socket connection
-let socketConnection = $getSocketConnection();
+// get messenger store
+const messengerStore = useMessengerStore();
 
 // create page action with screen size
 const {smAndDown} = useDisplay();
@@ -68,14 +69,6 @@ if (smAndDown) {
   if (!pageAction.value)
     pageAction.value = 'list';
 }
-
-// watch screen size changed to tablet or smaller
-watch(smAndDown, (newValue) => {
-  if (newValue) {
-    if (!pageAction.value)
-      pageAction.value = 'list';
-  }
-});
 
 // list action can be chats or contacts
 const listAction = ref('chats');
@@ -102,6 +95,29 @@ const onConversationSelected = (conversation) => {
   chat.value.setConversation(conversation._id);
   changePageAction('chat');
 };
+
+// get socket connection
+let socketConnection = $getSocketConnection();
+
+// init socket events
+// Messages Events
+socketConnection.on('messages:insert', (message) => {
+  messengerStore.addMessage(message);
+});
+
+// Conversations Events
+socketConnection.on('conversations:insert', (conversation) => {
+  messengerStore.addConversation(conversation);
+});
+
+
+// watch screen size changed to tablet or smaller
+watch(smAndDown, (newValue) => {
+  if (newValue) {
+    if (!pageAction.value)
+      pageAction.value = 'list';
+  }
+});
 
 </script>
 

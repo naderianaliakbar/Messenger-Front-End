@@ -23,7 +23,7 @@
 
           <v-btn v-if="smAndDown"
                  @click="closeChat"
-                 class="mt-3 mr-2"
+                 class="mt-2 mr-2"
                  variant="text"
                  icon>
             <v-icon>mdi-arrow-right</v-icon>
