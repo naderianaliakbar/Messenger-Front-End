@@ -76,8 +76,8 @@
           <UserAvatar class=""
                       :color="contact.color"
                       :online="messengerStore.users[contact._id].online"
-                      :firstName="contact.firstName"
-                      :lastName="contact.lastName"
+                      :firstName="contact.name.first"
+                      :lastName="contact.name.last"
                       :avatars="contact.avatars"/>
         </template>
 

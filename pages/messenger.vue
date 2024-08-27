@@ -53,10 +53,10 @@ definePageMeta({
 });
 
 // get Nuxt App Functions
-const {$notify, $createSocketConnection, $getSocketConnection} = useNuxtApp();
+const {$notify, $getSocketConnection, $destroySocketConnection} = useNuxtApp();
 
 // create socket connection
-$createSocketConnection();
+let socketConnection = $getSocketConnection();
 
 // create page action with screen size
 const {smAndDown} = useDisplay();

@@ -1,7 +1,7 @@
 import {io} from 'socket.io-client';
 
 export default defineNuxtPlugin(nuxtApp => {
-    let socketConnection;
+    let socketConnection = undefined;
     const config = useRuntimeConfig();
     const token = useCookie('token');
 
@@ -16,18 +16,29 @@ export default defineNuxtPlugin(nuxtApp => {
             options.query = `token=${token.value}`;
         }
 
-        socketConnection = io(config.public.SOCKET_URL, options);
+        if (!socketConnection)
+            socketConnection = io(config.public.SOCKET_URL, options);
+    };
+
+    const destroySocketConnection = () => {
+        socketConnection.destroy();
     };
 
     const getSocketConnection = () => {
-        return socketConnection;
-    };
+        if (socketConnection)
+            return socketConnection;
+        else {
+            createSocketConnection();
+            return socketConnection;
+        }
 
+    };
 
     // You can alternatively use this format, which comes with automatic type support
     return {
         provide: {
             createSocketConnection,
+            destroySocketConnection,
             getSocketConnection
         }
     }
