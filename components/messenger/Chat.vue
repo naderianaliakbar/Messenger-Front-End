@@ -1,5 +1,5 @@
 <template>
-  <div class="chatContainer h-100">
+  <div class="chatContainer">
     <!--   Chat Loading  -->
     <v-overlay class="d-flex justify-center align-center"
                v-model="chatLoading"
@@ -16,10 +16,10 @@
 
     <!--   Chat   -->
     <v-slide-x-transition>
-      <div v-if="conversation.type" class="d-flex flex-column h-100">
+      <div class="d-flex flex-column h-100">
 
         <!-- Header -->
-        <div class="border d-flex bg-white chatHeader pb-1">
+        <div v-if="conversation.type" class="border d-flex bg-white chatHeader pb-1">
 
           <v-btn v-if="smAndDown"
                  @click="closeChat"
@@ -63,7 +63,10 @@
         </div>
 
         <!--  Chat Content  -->
-        <div class="flex-grow-1 d-flex flex-column-reverse pr-6 pb-2 pl-4 chatContent">
+        <div class="flex-grow-1 d-flex flex-column pr-md-6 pb-2 pl-md-4 pt-5 chatContent"
+             ref="chatContent">
+
+          <!--          -->
 
           <!--     Messages Loading      -->
           <div v-if="messagesLoading" class="d-flex align-center justify-center">
@@ -73,7 +76,9 @@
           <!--     Messages    -->
           <div v-if="conversation._id"
                v-for="(message, index) in listOfMessages"
-               class="d-flex mb-1">
+               v-intersect="onMessageViewed"
+               :data-id="message._id"
+               class="d-flex mb-1 observerTrigger">
 
             <v-spacer v-if="message._sender !== user._id"></v-spacer>
 
@@ -90,17 +95,25 @@
             </UserAvatar>
 
             <!--      Message       -->
-            <v-card class="py-1 px-4 messageContainer" :class="[
+            <v-card class="py-1 px-4 messageContainer"
+                    :class="[
                 message._sender === user._id ? 'rounded-bs-lg bg-lime-accent-1' : 'rounded-bs-lg',
                 message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id)) ? '' : 'mr-12',
                 conversation.type === 'private' && message._sender === contact._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== contact._id)) ? '' : 'ml-12'
             ]" flat>
+
               <!--       Content        -->
-              <div v-if="message.type === 'text'" class="text-subtitle-2">{{ message.content }}</div>
+              <div v-if="message.type === 'text'" class="text-subtitle-2 mb-1">{{ message.content }}</div>
 
               <!--      Date - Edited - Read        -->
               <div class="float-end mb-n2 ml-n2 messageInfo">
-                <v-icon size="20" class="read mt-1">mdi-check</v-icon>
+                <!--        Read Status        -->
+                <span v-if="message._sender === user._id" class="read mt-1">
+                  <v-icon v-if="message._readBy.length > 1" size="20">mdi-check-all</v-icon>
+                  <v-icon v-else size="20">mdi-check</v-icon>
+                </span>
+
+                <!--        Date        -->
                 <v-label class="text-caption time">
                   {{ new PersianDate(new Date(message.createdAt)).toLocale('fa').format('h:mm a') }}
                 </v-label>
@@ -120,11 +133,10 @@
             </UserAvatar>
 
           </div>
-
         </div>
 
         <!--  Chat Form   -->
-        <div class="d-flex">
+        <div v-if="conversation.type" class="d-flex">
           <v-form class="mx-5 w-100" @submit.prevent="sendTextMessage">
             <v-text-field class="rounded-0"
                           v-model="form.text"
@@ -162,13 +174,13 @@
 </template>
 
 <script setup>
-import {ref, watch}        from "vue";
-import {useMessengerStore} from "~/store/messenger";
-import {useAPI}            from "~/composables/useAPI";
-import {useCookie}         from "#app";
-import UserAvatar          from "~/components/messenger/UserAvatar.vue";
-import {useDisplay}        from "vuetify";
-import PersianDate         from "persian-date";
+import {ref, watch, onMounted, onBeforeUnmount, nextTick} from "vue";
+import {useMessengerStore}                                from "~/store/messenger";
+import {useAPI}                                           from "~/composables/useAPI";
+import {useCookie}                                        from "#app";
+import UserAvatar                                         from "~/components/messenger/UserAvatar.vue";
+import {useDisplay}                                       from "vuetify";
+import PersianDate                                        from "persian-date";
 
 const emit            = defineEmits(['exit']);
 const {smAndDown}     = useDisplay();
@@ -193,7 +205,7 @@ const contact         = ref(null);
 
 const listOfMessages = computed(() => {
   const sortedList = Object.entries(messengerStore.messages[conversation.value._id])
-      .sort(([, a], [, b]) => new Date(b.createdAt) - new Date(a.createdAt))
+      .sort(([, a], [, b]) => new Date(a.createdAt) - new Date(b.createdAt))
       .reduce((acc, [key, value]) => {
         acc[key] = value;
         return acc;
@@ -340,6 +352,71 @@ const setConversation = (conversationId) => {
   }
 };
 
+const readMessage = async (messageId) => {
+  await useAPI('conversations/' + conversation.value._id + '/messages/' + messageId + '/read', {
+    method: 'put',
+    onResponse({response}) {
+      if (response.status === 200) {
+        // read message in the store
+        messengerStore.readMessage({
+          _id          : messageId,
+          _conversation: conversation.value._id
+        }, user.value._id);
+      }
+    }
+  });
+};
+
+// set intersect for messages (read)
+const onMessageViewed = (target) => {
+  const messageId = target.getAttribute('data-id');
+  // check message is not for user and never viewed before
+  if (
+      messengerStore.messages[conversation.value._id][messageId]._sender !== user.value._id &&
+      !messengerStore.messages[conversation.value._id][messageId]._readBy.includes(user.value._id)
+  ) {
+    readMessage(messageId);
+  }
+};
+
+const chatContent      = ref(null);
+const scrollPosition   = ref(0);
+const scrollToBottom   = ref(false);
+// handle chat scroll
+const handleChatScroll = () => {
+  const scrollTop    = chatContent.value.scrollTop;
+  const scrollHeight = chatContent.value.scrollHeight;
+  const clientHeight = chatContent.value.clientHeight;
+
+  // scroll percent
+  scrollPosition.value = (scrollTop / (scrollHeight - clientHeight)) * 100;
+
+  // change scrollToBottom flag
+  scrollToBottom.value = (scrollPosition.value < 90);
+
+};
+
+// scroll to bottom
+const scrollChatToBottom = () => {
+  chatContent.value.scrollTop = chatContent.value.scrollHeight;
+};
+
+onMounted(() => {
+  nextTick(() => {
+    if (chatContent.value) {
+      chatContent.value.addEventListener('scroll', handleChatScroll);
+    } else {
+      console.log(chatContent.value);
+    }
+  });
+});
+
+onBeforeUnmount(() => {
+  if (chatContent.value) {
+    chatContent.value.removeEventListener('scroll', handleChatScroll);
+  }
+});
+
 // watch
 watch(conversation, () => {
   // load conversation messages
@@ -355,39 +432,44 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.chatBg {
-  z-index: 0;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background-image: url('/img/chatbg.png');
-  background-repeat: repeat;
-  opacity: 40%;
-}
+.chatContainer {
+  height: 100vh;
 
-.chatContent {
-  overflow: scroll;
+  .chatBg {
+    z-index: 0;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-image: url('/img/chatbg.png');
+    background-repeat: repeat;
+    opacity: 40%;
+  }
 
+  .chatHeader {
+    z-index: 2;
+  }
 
-  .messageContainer {
-    max-width: 80% !important;
+  .chatContent {
+    z-index: 2;
+    overflow-y: auto;
+    height: 50vh;
 
-    .messageInfo {
-      margin-top: -10px !important;
-      position: relative;
+    .messageContainer {
+      max-width: 80% !important;
 
-      .time {
-        font-size: 0.6rem !important;
+      .messageInfo {
+        margin-top: -10px !important;
+        position: relative;
+
+        .time {
+          font-size: 0.6rem !important;
+        }
       }
     }
   }
-}
 
-.chatHeader {
-  z-index: 2;
-}
-
-.sendIcon {
-  transform: rotate(180deg);
+  .sendIcon {
+    transform: rotate(180deg);
+  }
 }
 </style>

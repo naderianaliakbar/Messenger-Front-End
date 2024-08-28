@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {useAPI}      from "~/composables/useAPI";
+import {useCookie}   from "#app";
 
 export const useMessengerStore = defineStore('messenger', {
     state() {
@@ -84,6 +84,10 @@ export const useMessengerStore = defineStore('messenger', {
             }
 
         },
+        readMessage(message, userId) {
+            if (!this.messages[message._conversation][message._id]._readBy.includes(userId))
+                this.messages[message._conversation][message._id]._readBy.push(userId);
+        }
     },
     persist: true
 });

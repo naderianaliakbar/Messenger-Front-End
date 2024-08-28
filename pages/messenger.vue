@@ -28,7 +28,7 @@
 
     <!--  Chat   -->
     <v-col v-show="!smAndDown || pageAction === 'chat'"
-           class="position-relative border py-0 px-0"
+           class="position-relative border py-0 px-0 overflow-hidden"
            cols="12"
            md="9">
       <Chat ref="chat" @exit="changePageAction('list')"/>
@@ -38,13 +38,13 @@
 </template>
 
 <script setup>
-import {ref}               from "vue";
-import {useDisplay}        from "vuetify";
-import Chat                from "~/components/messenger/Chat.vue";
-import Contacts            from "~/components/messenger/Contacts.vue";
-import Conversations       from "~/components/messenger/Conversations.vue";
-import {useNuxtApp}        from "#app";
-import {useMessengerStore} from "~/store/messenger";
+import {ref} from "vue";
+import {useDisplay}                                from "vuetify";
+import Chat                                        from "~/components/messenger/Chat.vue";
+import Contacts                                    from "~/components/messenger/Contacts.vue";
+import Conversations                               from "~/components/messenger/Conversations.vue";
+import {useNuxtApp}                                from "#app";
+import {useMessengerStore}                         from "~/store/messenger";
 
 definePageMeta({
   layout      : 'blank',
@@ -103,6 +103,10 @@ let socketConnection = $getSocketConnection();
 // Messages Events
 socketConnection.on('messages:insert', (message) => {
   messengerStore.addMessage(message);
+});
+
+socketConnection.on('messages:read', (message) => {
+  messengerStore.readMessage(message, message._user);
 });
 
 // Conversations Events
