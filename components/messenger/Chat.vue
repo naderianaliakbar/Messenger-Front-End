@@ -66,7 +66,19 @@
         <div class="flex-grow-1 d-flex flex-column pr-md-6 pb-2 pl-md-4 pt-5 chatContent"
              ref="chatContent">
 
-          <!--          -->
+          <!--      Scroll To Bottom    -->
+          <v-btn v-if="scrollToBottomFlag && conversation._id"
+                 class="scrollToBottom"
+                 @click="scrollToBottom"
+                 icon>
+            <v-icon>mdi-arrow-down</v-icon>
+            <v-badge v-if="conversation._id && messengerStore.conversations[conversation._id].unreadCount"
+                     color="primary"
+                     class="mt-n12 position-absolute"
+                     :content="messengerStore.conversations[conversation._id].unreadCount"
+                     location="bottom left">
+            </v-badge>
+          </v-btn>
 
           <!--     Messages Loading      -->
           <div v-if="messagesLoading" class="d-flex align-center justify-center">
@@ -347,6 +359,8 @@ const setConversation = (conversationId) => {
         break;
     }
 
+    scrollToBottom();
+
   } else {
     console.log('conversation is not exist');
   }
@@ -362,6 +376,9 @@ const readMessage = async (messageId) => {
           _id          : messageId,
           _conversation: conversation.value._id
         }, user.value._id);
+
+        // minus unreadCount
+        messengerStore.changeReadCount(conversation.value._id, 'minus');
       }
     }
   });
@@ -379,11 +396,11 @@ const onMessageViewed = (target) => {
   }
 };
 
-const chatContent      = ref(null);
-const scrollPosition   = ref(0);
-const scrollToBottom   = ref(false);
+const chatContent        = ref(null);
+const scrollPosition     = ref(0);
+const scrollToBottomFlag = ref(false);
 // handle chat scroll
-const handleChatScroll = () => {
+const handleChatScroll   = () => {
   const scrollTop    = chatContent.value.scrollTop;
   const scrollHeight = chatContent.value.scrollHeight;
   const clientHeight = chatContent.value.clientHeight;
@@ -392,25 +409,41 @@ const handleChatScroll = () => {
   scrollPosition.value = (scrollTop / (scrollHeight - clientHeight)) * 100;
 
   // change scrollToBottom flag
-  scrollToBottom.value = (scrollPosition.value < 90);
+  scrollToBottomFlag.value = scrollPosition.value < 95;
 
 };
 
 // scroll to bottom
-const scrollChatToBottom = () => {
+const scrollToBottom = () => {
   chatContent.value.scrollTop = chatContent.value.scrollHeight;
 };
 
+// watch messenger store
+messengerStore.$onAction(({name, store, args}) => {
+  // switch between actions
+  switch (name) {
+    case 'addMessage':
+      if (conversation.value._id && args[0]._conversation === conversation.value._id) {
+        if (!scrollToBottomFlag.value) {
+          setTimeout(() => {
+            scrollToBottom();
+          }, 100);
+        }
+      }
+      break;
+  }
+});
+
+// mount
 onMounted(() => {
   nextTick(() => {
     if (chatContent.value) {
       chatContent.value.addEventListener('scroll', handleChatScroll);
-    } else {
-      console.log(chatContent.value);
     }
   });
 });
 
+// beforeUnmount
 onBeforeUnmount(() => {
   if (chatContent.value) {
     chatContent.value.removeEventListener('scroll', handleChatScroll);
@@ -453,6 +486,13 @@ defineExpose({
     z-index: 2;
     overflow-y: auto;
     height: 50vh;
+
+    .scrollToBottom {
+      position: fixed;
+      z-index: 3;
+      bottom: 90px;
+      margin-right: 1rem;
+    }
 
     .messageContainer {
       max-width: 80% !important;

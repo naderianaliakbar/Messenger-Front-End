@@ -1,5 +1,4 @@
 import {defineStore} from "pinia";
-import {useCookie}   from "#app";
 
 export const useMessengerStore = defineStore('messenger', {
     state() {
@@ -85,8 +84,20 @@ export const useMessengerStore = defineStore('messenger', {
 
         },
         readMessage(message, userId) {
-            if (!this.messages[message._conversation][message._id]._readBy.includes(userId))
+            if (!this.messages[message._conversation][message._id]._readBy.includes(userId)) {
+                // push user id to _readBy
                 this.messages[message._conversation][message._id]._readBy.push(userId);
+            }
+        },
+        changeReadCount(_conversation, operation) {
+            switch (operation) {
+                case 'add':
+                    this.conversations[_conversation].unreadCount++;
+                    break;
+                case 'minus':
+                    this.conversations[_conversation].unreadCount--;
+                    break;
+            }
         }
     },
     persist: true

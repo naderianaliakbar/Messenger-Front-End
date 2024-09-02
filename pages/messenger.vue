@@ -38,13 +38,13 @@
 </template>
 
 <script setup>
-import {ref} from "vue";
-import {useDisplay}                                from "vuetify";
-import Chat                                        from "~/components/messenger/Chat.vue";
-import Contacts                                    from "~/components/messenger/Contacts.vue";
-import Conversations                               from "~/components/messenger/Conversations.vue";
-import {useNuxtApp}                                from "#app";
-import {useMessengerStore}                         from "~/store/messenger";
+import {ref}                   from "vue";
+import {useDisplay}            from "vuetify";
+import Chat                    from "~/components/messenger/Chat.vue";
+import Contacts                from "~/components/messenger/Contacts.vue";
+import Conversations           from "~/components/messenger/Conversations.vue";
+import {useCookie, useNuxtApp} from "#app";
+import {useMessengerStore}     from "~/store/messenger";
 
 definePageMeta({
   layout      : 'blank',
@@ -55,6 +55,9 @@ definePageMeta({
 
 // get Nuxt App Functions
 const {$notify, $getSocketConnection, $destroySocketConnection} = useNuxtApp();
+
+// get user from Cookie
+const user = useCookie('user');
 
 // get messenger store
 const messengerStore = useMessengerStore();
@@ -102,7 +105,11 @@ let socketConnection = $getSocketConnection();
 // init socket events
 // Messages Events
 socketConnection.on('messages:insert', (message) => {
+  // add message
   messengerStore.addMessage(message);
+
+  // add unread Counts
+  messengerStore.changeReadCount(message._conversation, 'add');
 });
 
 socketConnection.on('messages:read', (message) => {
