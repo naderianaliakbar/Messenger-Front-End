@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import {ref}                   from "vue";
+import {ref, onBeforeMount}                   from "vue";
 import {useDisplay}            from "vuetify";
 import Chat                    from "~/components/messenger/Chat.vue";
 import Contacts                from "~/components/messenger/Contacts.vue";
@@ -119,6 +119,13 @@ socketConnection.on('messages:read', (message) => {
 // Conversations Events
 socketConnection.on('conversations:insert', (conversation) => {
   messengerStore.addConversation(conversation);
+});
+
+
+// on before mount
+onBeforeMount(() => {
+  // clear the recent uploads
+  messengerStore.clearUploads();
 });
 
 

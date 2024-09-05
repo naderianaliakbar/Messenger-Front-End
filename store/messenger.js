@@ -5,7 +5,8 @@ export const useMessengerStore = defineStore('messenger', {
         return {
             conversations: {},
             messages     : {},
-            users        : {}
+            users        : {},
+            uploads      : {}
         }
     },
     actions: {
@@ -74,6 +75,16 @@ export const useMessengerStore = defineStore('messenger', {
             this.messages[message._conversation][message._id]['_conversation'] = message._conversation;
             this.messages[message._conversation][message._id]['_readBy']       = message._readBy;
 
+            // add uploading if exists
+            if ('uploading' in message) {
+                this.messages[message._conversation][message._id]['uploading'] = message.uploading;
+            }
+
+            // add uploading if exists
+            if ('attachment' in message) {
+                this.messages[message._conversation][message._id]['attachment'] = message.attachment;
+            }
+
 
             // switch for message type and set special fields
             switch (message.type) {
@@ -89,6 +100,11 @@ export const useMessengerStore = defineStore('messenger', {
                 this.messages[message._conversation][message._id]._readBy.push(userId);
             }
         },
+        deleteMessage(message) {
+            if(this.messages[message._conversation][message._id]) {
+                delete this.messages[message._conversation][message._id];
+            }
+        },
         changeReadCount(_conversation, operation) {
             switch (operation) {
                 case 'add':
@@ -98,6 +114,36 @@ export const useMessengerStore = defineStore('messenger', {
                     this.conversations[_conversation].unreadCount--;
                     break;
             }
+        },
+        addUpload(upload) {
+            // create the message upload
+            if (!this.uploads[upload._message])
+                this.uploads[upload._message] = {};
+
+            this.uploads[upload._message]['_message']         = upload._message;
+            this.uploads[upload._message]['_conversation']    = upload._conversation;
+            this.uploads[upload._message]['controller']       = upload.controller;
+            this.uploads[upload._message]['uploadedBytes']    = upload.uploadedBytes;
+            this.uploads[upload._message]['uploadedProgress'] = upload.uploadedProgress;
+
+        },
+        updateUploadProgress(_message, progress) {
+            this.uploads[_message]['uploadedBytes']    = progress.uploadedBytes;
+            this.uploads[_message]['uploadedProgress'] = progress.uploadedProgress;
+        },
+        deleteUpload(upload) {
+            if(this.uploads[upload._message]) {
+                delete this.uploads[upload._message];
+            }
+        },
+        clearUploads() {
+            Object.values(this.uploads).forEach(upload => {
+                // delete the message
+                delete this.messages[upload._conversation][upload._message];
+
+                // delete the upload
+                delete this.uploads[upload._message];
+            })
         }
     },
     persist: true

@@ -85,6 +85,9 @@
             <v-progress-circular color="white" indeterminate></v-progress-circular>
           </div>
 
+          <!--    Spacer for when not enough messages for height of screen      -->
+          <v-spacer></v-spacer>
+
           <!--     Messages    -->
           <div v-if="conversation._id"
                v-for="(message, index) in listOfMessages"
@@ -95,30 +98,46 @@
             <v-spacer v-if="message._sender !== user._id"></v-spacer>
 
             <!--    User Avatar  (self)     -->
-            <UserAvatar
-                v-if="message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id))"
-                class="mr-1 ml-1"
-                size="40"
-                :color="user.color"
-                :online="user.online"
-                :firstName="user.firstName"
-                :lastName="user.lastName"
-                :avatars="user.avatars">
-            </UserAvatar>
+            <div class="d-flex flex-column">
+              <v-spacer></v-spacer>
+              <UserAvatar
+                  v-if="message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id))"
+                  class="mr-1 ml-1"
+                  size="40"
+                  :color="user.color"
+                  :online="user.online"
+                  :firstName="user.firstName"
+                  :lastName="user.lastName"
+                  :avatars="user.avatars">
+              </UserAvatar>
+            </div>
 
             <!--      Message       -->
-            <v-card class="py-1 px-4 messageContainer"
+            <v-card class="py-1 messageContainer"
+                    :min-width="['video','audio','file','image'].includes(message.type) ? 250 : ''"
                     :class="[
                 message._sender === user._id ? 'rounded-bs-lg bg-lime-accent-1' : 'rounded-bs-lg',
                 message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id)) ? '' : 'mr-12',
-                conversation.type === 'private' && message._sender === contact._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== contact._id)) ? '' : 'ml-12'
+                conversation.type === 'private' && message._sender === contact._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== contact._id)) ? '' : 'ml-12',
+                message.type === 'text' ? 'px-4': '',
+                message.type === 'file' ? 'px-4 py-2': '',
+                ['video','image'].includes(message.type) ? 'px-0 pt-0' : '',
+                message.uploading ? 'pb-0' : ''
             ]" flat>
 
+              <!--      Attachments         -->
+              <FileView v-if="message.attachment"
+                        class="w-100 px-0 py-0 mt-0 mb-0"
+                        :_id="message._id"
+                        :uploading="message.uploading"
+                        :_conversation="conversation._id"
+                        :file="message.attachment"/>
+
               <!--       Content        -->
-              <div v-if="message.type === 'text'" class="text-subtitle-2 mb-1">{{ message.content }}</div>
+              <div v-if="message.content" class="text-subtitle-2 mb-1">{{ message.content }}</div>
 
               <!--      Date - Edited - Read        -->
-              <div class="float-end mb-n2 ml-n2 messageInfo">
+              <div v-if="!message.uploading" class="float-end mb-n2 ml-n2 messageInfo">
                 <!--        Read Status        -->
                 <span v-if="message._sender === user._id" class="read mt-1">
                   <v-icon v-if="message._readBy.length > 1" size="20">mdi-check-all</v-icon>
@@ -145,6 +164,7 @@
             </UserAvatar>
 
           </div>
+
         </div>
 
         <!--  Chat Form   -->
@@ -162,8 +182,21 @@
                     <v-icon size="22">mdi-microphone</v-icon>
                   </v-btn>
 
+                  <!--      File Input      -->
+                  <v-file-input v-model="inputFiles"
+                                validate-on="input"
+                                type="file"
+                                class="d-none"
+                                ref="filesInput"
+                                accept=".jpg,.jpeg,.png,.gif,.bmp,.webp,.mp4,.mov,.avi,.mkv,.webm,.mp3,.ogg,.wav,.flac,.aac,.m4a,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.zip,.rar,.7z,.tar,.gz,.exe,.apk,.bat"
+                                multiple>
+                  </v-file-input>
+
                   <!--      File        -->
-                  <v-btn variant="text" size="small" icon>
+                  <v-btn @click="openFileExplore"
+                         variant="text"
+                         size="small"
+                         icon>
                     <v-icon size="22">mdi-paperclip</v-icon>
                   </v-btn>
 
@@ -180,6 +213,13 @@
           </v-form>
         </div>
 
+        <!--    Upload Files Dialog     -->
+        <UploadFilesDialog v-model="uploadFileDialog"
+                           @exit="uploadFileDialog = false"
+                           @createConversation="createConversation"
+                           :_conversation="conversation._id"
+                           :files="inputFiles"/>
+
       </div>
     </v-slide-x-transition>
   </div>
@@ -189,31 +229,38 @@
 import {ref, watch, onMounted, onBeforeUnmount, nextTick} from "vue";
 import {useMessengerStore}                                from "~/store/messenger";
 import {useAPI}                                           from "~/composables/useAPI";
-import {useCookie}                                        from "#app";
+import {useCookie, useNuxtApp}                            from "#app";
 import UserAvatar                                         from "~/components/messenger/UserAvatar.vue";
 import {useDisplay}                                       from "vuetify";
 import PersianDate                                        from "persian-date";
+import UploadFilesDialog                                  from "~/components/messenger/UploadFilesDialog.vue";
+import FileView                                           from "~/components/messenger/FileView.vue";
 
-const emit            = defineEmits(['exit']);
-const {smAndDown}     = useDisplay();
-const user            = useCookie('user');
-const chatLoading     = ref(false);
-const messengerStore  = useMessengerStore();
-const form            = ref({
+const emit             = defineEmits(['exit']);
+const {$notify}        = useNuxtApp();
+const {smAndDown}      = useDisplay();
+const user             = useCookie('user');
+const chatLoading      = ref(false);
+const messengerStore   = useMessengerStore();
+const form             = ref({
   _id            : '',
   action         : 'add',
   text           : '',
   _replyToMessage: undefined
 });
-const conversation    = ref({
+const inputFiles       = ref([]);
+const conversation     = ref({
   _id           : '',
   type          : '',
   members       : [],
   _pinnedMessage: undefined
 });
-const messagesLoading = ref(false);
+const messagesLoading  = ref(false);
+const filesInput       = ref(null);
+const uploadFileDialog = ref(false);
+
 // if conversation type is private
-const contact         = ref(null);
+const contact = ref(null);
 
 const listOfMessages = computed(() => {
   const sortedList = Object.entries(messengerStore.messages[conversation.value._id])
@@ -226,6 +273,10 @@ const listOfMessages = computed(() => {
   return Object.values(sortedList);
 });
 
+// open File Input (File Explore)
+const openFileExplore = () => {
+  filesInput.value.click();
+};
 
 // close chat in smAndDown
 const closeChat = () => {
@@ -366,6 +417,7 @@ const setConversation = (conversationId) => {
   }
 };
 
+// request for read message
 const readMessage = async (messageId) => {
   await useAPI('conversations/' + conversation.value._id + '/messages/' + messageId + '/read', {
     method: 'put',
@@ -451,10 +503,56 @@ onBeforeUnmount(() => {
 });
 
 // watch
+// conversation
 watch(conversation, () => {
   // load conversation messages
   if (conversation.value._id)
     getMessages();
+});
+
+// files Input
+watch(inputFiles, (value) => {
+  let valid = true;
+
+  // check the extension and size of files
+  if (value)
+    value.forEach((file) => {
+      // Allowing file types
+      const acceptedFormats = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp',
+        'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm',
+        'audio/mpeg', 'audio/ogg', 'audio/wav', 'audio/flac', 'audio/aac', 'audio/mp4',
+        'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain', 'text/csv', 'application/rtf',
+        'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed', 'application/x-tar', 'application/gzip',
+        'application/x-msdownload', 'application/vnd.android.package-archive', 'application/x-msdos-program'
+      ]
+
+      // check format
+      if (!acceptedFormats.includes(file.type)) {
+        // show error
+        $notify('فرمت فایل ' + file.name + ' قابل قبول نیست', 'error');
+        valid = false;
+        return [];
+      }
+
+      // check size
+      if ((file.size / 1024 / 1024).toFixed(2) > 2048) {
+        // show error
+        $notify('اندازه فایل بیش از حد مجاز است', 'error');
+        valid = false;
+        return [];
+      }
+
+    });
+
+  // upload files if all files is valid
+  if (valid) {
+    uploadFileDialog.value = true;
+  }
+
 });
 
 defineExpose({

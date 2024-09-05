@@ -5,7 +5,7 @@
                          mode="in-out">
       <v-alert v-show="notification.show"
                class="my-1 text-caption"
-               :icon="'$' + notification.color"
+               :icon="'$' + (notification.color ?? 'warning')"
                :color="notification.color"
                :text="notification.text"
                min-width="300"
@@ -59,5 +59,6 @@ export default {
   left: 0;
   display: flex;
   flex-direction: column;
+  z-index: 5;
 }
 </style>

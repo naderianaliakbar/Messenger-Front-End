@@ -1,7 +1,7 @@
 <template>
-  <v-dialog width="450">
+  <v-dialog width="350">
     <v-card class="rounded-lg">
-      <v-card-title>
+      <v-card-title class="mt-1">
         افزودن مخاطب
         <!--        <v-btn class="float-end"-->
         <!--               @click=""-->
@@ -64,7 +64,7 @@
           </v-text-field>
         </v-row>
 
-        <v-card-actions class="mx-5 mb-2 d-flex justify-end">
+        <v-card-actions class="mx-5 mb-2 mt-1 d-flex justify-end">
           <v-btn class="bg-primary px-5 float-end"
                  prepend-icon="mdi-account-plus-outline"
                  :loading="loading"
