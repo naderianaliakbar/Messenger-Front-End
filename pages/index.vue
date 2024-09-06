@@ -4,18 +4,20 @@
   </v-row>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
+<script setup>
 
-    }
-  },
-  methods: {},
-  mounted() {
+import {navigateTo, useCookie} from "#app";
+import {onBeforeMount}         from 'vue';
+
+onBeforeMount(() => {
+  const user = useCookie('user');
+  if (user.value) {
+    navigateTo('/messenger');
+  } else {
     navigateTo('/login');
   }
-}
+});
+
 </script>
 
 <style scoped>

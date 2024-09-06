@@ -113,33 +113,41 @@
             </div>
 
             <!--      Message       -->
-            <v-card class="py-1 messageContainer"
+            <v-card class="messageContainer"
                     :min-width="['video','audio','file','image'].includes(message.type) ? 250 : ''"
                     :class="[
                 message._sender === user._id ? 'rounded-bs-lg bg-lime-accent-1' : 'rounded-bs-lg',
                 message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id)) ? '' : 'mr-12',
                 conversation.type === 'private' && message._sender === contact._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== contact._id)) ? '' : 'ml-12',
-                message.type === 'text' ? 'px-4': '',
+                message.type === 'text' ? 'px-4 py-1': '',
                 message.type === 'file' ? 'px-4 py-2': '',
-                ['video','image'].includes(message.type) ? 'px-0 pt-0' : '',
+                ['video','image'].includes(message.type) ? 'px-0 pt-0 py-0' : '',
                 message.uploading ? 'pb-0' : ''
             ]" flat>
 
               <!--      Attachments         -->
               <FileView v-if="message.attachment"
-                        class="w-100 px-0 py-0 mt-0 mb-0"
+                        class="w-100 px-0 py-0 mt-0 mb-n2"
+                        :data-id="message._id"
                         :_id="message._id"
                         :uploading="message.uploading"
+                        :downloading="message.downloading"
                         :_conversation="conversation._id"
+                        :_message="message._id"
                         :file="message.attachment"/>
 
               <!--       Content        -->
               <div v-if="message.content" class="text-subtitle-2 mb-1">{{ message.content }}</div>
 
               <!--      Date - Edited - Read        -->
-              <div v-if="!message.uploading" class="float-end mb-n2 ml-n2 messageInfo">
+              <div v-if="!message.uploading"
+                   class="float-end mb-n2 ml-n2 messageInfo"
+                   :class="[
+                       message.type === 'text' ? 'mt-n3' : '',
+                       ['video','image'].includes(message.type) ? 'position-absolute mt-n7 rounded-xl px-2 bg-white' : ''
+                   ]">
                 <!--        Read Status        -->
-                <span v-if="message._sender === user._id" class="read mt-1">
+                <span v-if="message._sender === user._id" class="read mt-1 ml-1">
                   <v-icon v-if="message._readBy.length > 1" size="20">mdi-check-all</v-icon>
                   <v-icon v-else size="20">mdi-check</v-icon>
                 </span>
@@ -446,6 +454,18 @@ const onMessageViewed = (target) => {
   ) {
     readMessage(messageId);
   }
+
+  // download the file
+  if (
+      ['video', 'audio', 'image'].includes(
+          messengerStore.messages[conversation.value._id][messageId].type
+      )
+  ) {
+    messengerStore.enableDownload({
+      _id          : messageId,
+      _conversation: conversation.value._id
+    });
+  }
 };
 
 const chatContent        = ref(null);
@@ -596,8 +616,7 @@ defineExpose({
       max-width: 80% !important;
 
       .messageInfo {
-        margin-top: -10px !important;
-        position: relative;
+        left: 10px;
 
         .time {
           font-size: 0.6rem !important;

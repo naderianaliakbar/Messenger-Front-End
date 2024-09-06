@@ -44,7 +44,7 @@
 
 <script setup>
 import FileView                from "~/components/messenger/FileView.vue";
-import {ref, watch}            from "vue";
+import {nextTick, ref, watch}  from "vue";
 import {useCookie, useNuxtApp} from "#app";
 import {useMessengerStore}     from "~/store/messenger";
 import {useAPI}                from "~/composables/useAPI";
@@ -64,11 +64,11 @@ const props = defineProps({
 // define emits
 const emit = defineEmits(['exit', 'createConversation']);
 
-const messengerStore            = useMessengerStore();
-const {$notify, $axios}         = useNuxtApp();
-const user                      = useCookie('user');
-const text                      = ref('');
-const waitForCreateConversation = ref(false);
+const messengerStore                = useMessengerStore();
+const {$notify, $axios, $indexedDB} = useNuxtApp();
+const user                          = useCookie('user');
+const text                          = ref('');
+const waitForCreateConversation     = ref(false);
 
 const deleteFile = (index) => {
   props.files.splice(index, 1);
@@ -140,7 +140,7 @@ const uploadFile = async (file) => {
     createdAt    : date,
     updatedAt    : date,
     _readBy      : [user.value._id],
-    attachments  : [file],
+    attachment   : file,
     uploading    : true
   };
 
@@ -170,10 +170,10 @@ const uploadFile = async (file) => {
       messengerStore.updateUploadProgress(messageId, {
         uploadedBytes   : progressEvent.loaded,
         uploadedProgress: Math.round((progressEvent.loaded / progressEvent.total) * 100)
-      })
+      });
     },
     signal
-  }).then((response) => {
+  }).then(async (response) => {
     if (response.status === 200) {
       // delete upload message
       messengerStore.deleteMessage({
@@ -186,8 +186,13 @@ const uploadFile = async (file) => {
         _message: messageId
       });
 
+      // save file in localStorage
+      await $indexedDB.saveFile(response.data.attachment.file, new Blob([file], { type: file.type }));
+
       // add the uploaded message
-      messengerStore.addMessage(response.data);
+      nextTick(() => {
+        messengerStore.addMessage(response.data);
+      });
     }
   });
 };

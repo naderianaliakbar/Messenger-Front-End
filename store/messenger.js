@@ -6,7 +6,7 @@ export const useMessengerStore = defineStore('messenger', {
             conversations: {},
             messages     : {},
             users        : {},
-            uploads      : {}
+            uploads      : {},
         }
     },
     actions: {
@@ -101,7 +101,7 @@ export const useMessengerStore = defineStore('messenger', {
             }
         },
         deleteMessage(message) {
-            if(this.messages[message._conversation][message._id]) {
+            if (this.messages[message._conversation][message._id]) {
                 delete this.messages[message._conversation][message._id];
             }
         },
@@ -132,7 +132,7 @@ export const useMessengerStore = defineStore('messenger', {
             this.uploads[_message]['uploadedProgress'] = progress.uploadedProgress;
         },
         deleteUpload(upload) {
-            if(this.uploads[upload._message]) {
+            if (this.uploads[upload._message]) {
                 delete this.uploads[upload._message];
             }
         },
@@ -144,7 +144,17 @@ export const useMessengerStore = defineStore('messenger', {
                 // delete the upload
                 delete this.uploads[upload._message];
             })
-        }
+        },
+        enableDownload(message) {
+            if (this.messages[message._conversation][message._id]) {
+                this.messages[message._conversation][message._id]['downloading'] = true;
+            }
+        },
+        disableDownload(message) {
+            if (this.messages[message._conversation][message._id]) {
+                this.messages[message._conversation][message._id]['downloading'] = false;
+            }
+        },
     },
     persist: true
 });
