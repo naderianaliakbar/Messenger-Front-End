@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex w-100 my-2 pa-2">
+  <div class="d-flex w-100">
     <!-- file loading progress  -->
     <v-progress-circular v-if="loading && type === 'file'"
                          v-model="getLoadProgress"
@@ -43,9 +43,10 @@
       <v-icon color="red">mdi-delete</v-icon>
     </v-btn>
 
-    <!-- Image File  -->
-    <v-img v-if="type === 'image'|| type === 'video'"
-           class="mt-n2"
+    <!-- Image File And Video File when downloading  -->
+    <v-img v-if="type === 'image' || (type === 'video' && !src)"
+           @click="emitShow"
+           class="mt-n2 w-100 h-100"
            min-height="150"
            :src="src">
 
@@ -61,9 +62,6 @@
 
       <!--   middle icons    -->
       <div class="d-flex justify-center align-center middleControllers">
-        <v-btn v-if="type === 'video' && !loading && src" disabled variant="flat" icon>
-          <v-icon>mdi-play</v-icon>
-        </v-btn>
 
         <!--  Download Avatar   -->
         <v-avatar v-if="!loading && !src"
@@ -85,8 +83,14 @@
       </div>
     </v-img>
 
-    <!-- Video element used for thumbnail generation -->
-    <video v-if="type === 'video'" ref="thumbnailVideo" class="d-none"></video>
+    <!--  Video File when downloaded   -->
+    <div v-if="type === 'video' && src && !videoControls"
+         class="d-flex justify-center align-center w-100 h-100 position-absolute videoControls">
+      <v-btn @click="emitShow" class="w-100 h-100" size="small" variant="text" stacked>
+        <v-icon color="white">mdi-play</v-icon>
+      </v-btn>
+    </div>
+    <VideoPlayer @click="emitShow" v-if="type === 'video' && src" :src="src" :options="videoOptions"/>
 
   </div>
 </template>
@@ -121,9 +125,17 @@ const props                = defineProps({
   _conversation: {
     type: String
   },
+  videoControls: {
+    type   : Boolean,
+    default: false
+  },
+  videoMuted   : {
+    type   : Boolean,
+    default: true
+  }
 });
 const config               = useRuntimeConfig();
-const emit                 = defineEmits(['delete']);
+const emit                 = defineEmits(['delete', 'show']);
 const {$axios, $indexedDB} = useNuxtApp();
 const messengerStore       = useMessengerStore();
 const loading              = ref(false);
@@ -133,8 +145,12 @@ const cancelTokenSource    = ref(null);
 const type                 = ref('file');
 const size                 = ref('');
 const src                  = ref(null);
-const thumbnailVideo       = ref(null);
-
+// const thumbnailVideo       = ref(null);
+const videoOptions         = ref({
+  type  : 'video/mp4',
+  autoplay: true,
+  loop: { active: true }
+});
 
 // get load progress
 const getLoadProgress = computed(() => {
@@ -189,6 +205,10 @@ const getSizeText       = (size) => {
 const deleteFile = () => {
   emit('delete');
 };
+
+const emitShow = () => {
+  emit('show');
+}
 
 const cancelLoading = () => {
   if (props.uploading) {
@@ -247,9 +267,11 @@ const download = async () => {
       src.value = URL.createObjectURL(data);
       break;
     case 'video':
-      generateThumbnail(URL.createObjectURL(data), (thumbnailBlob) => {
-        src.value = URL.createObjectURL(thumbnailBlob);
-      });
+      videoOptions.value.type = data.type;
+      src.value               = data;
+      // generateThumbnail(URL.createObjectURL(data), (thumbnailBlob) => {
+      //   src.value = URL.createObjectURL(thumbnailBlob);
+      // });
     case 'file':
       src.value = data;
       break;
@@ -278,6 +300,19 @@ onBeforeMount(() => {
   if (props.uploading) {
     loading.value = true;
   }
+
+  // set the video options
+  if(props.videoControls) {
+    videoOptions.value.controls = [
+        'play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings',
+        'pip', 'airplay', 'fullscreen'
+    ];
+  }
+  // set muted
+  videoOptions.value.muted    = props.videoMuted;
+  if(props.videoMuted) {
+    videoOptions.value.volume = 0;
+  }
 });
 
 onMounted(() => {
@@ -293,9 +328,8 @@ onMounted(() => {
     case 'video':
       if (props.file instanceof File) {
         getBlobOfFile(props.file, (blob) => {
-          generateThumbnail(blob, (thumbnailBlob) => {
-            src.value = URL.createObjectURL(thumbnailBlob);
-          });
+          videoOptions.value.type = props.file.type;
+          src.value               = blob;
         });
       }
       break;
@@ -315,6 +349,10 @@ watch(() => props.downloading, (newValue, oldValue) => {
   }
 });
 
+defineExpose({
+  download
+});
+
 </script>
 
 <style scoped>
@@ -324,6 +362,10 @@ watch(() => props.downloading, (newValue, oldValue) => {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
+}
+
+.videoControls {
+  z-index: 1;
 }
 
 .middleControllers {

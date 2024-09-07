@@ -115,6 +115,7 @@
             <!--      Message       -->
             <v-card class="messageContainer"
                     :min-width="['video','audio','file','image'].includes(message.type) ? 250 : ''"
+                    :max-width="message.type === 'video' ? '250' : '80%'"
                     :class="[
                 message._sender === user._id ? 'rounded-bs-lg bg-lime-accent-1' : 'rounded-bs-lg',
                 message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id)) ? '' : 'mr-12',
@@ -128,7 +129,9 @@
               <!--      Attachments         -->
               <FileView v-if="message.attachment"
                         class="w-100 px-0 py-0 mt-0 mb-n2"
-                        :data-id="message._id"
+                        @show="showFile(message._id)"
+                        :video-controls="false"
+                        :video-muted="true"
                         :_id="message._id"
                         :uploading="message.uploading"
                         :downloading="message.downloading"
@@ -228,6 +231,12 @@
                            :_conversation="conversation._id"
                            :files="inputFiles"/>
 
+        <!--    File Viewer     -->
+        <MessengerFileViewer v-model="fileViewer"
+                             @exit="closeFileViewer"
+                             :_conversation="conversation._id"
+                             :_message="fileViewerMessage"/>
+
       </div>
     </v-slide-x-transition>
   </div>
@@ -244,28 +253,30 @@ import PersianDate                                        from "persian-date";
 import UploadFilesDialog                                  from "~/components/messenger/UploadFilesDialog.vue";
 import FileView                                           from "~/components/messenger/FileView.vue";
 
-const emit             = defineEmits(['exit']);
-const {$notify}        = useNuxtApp();
-const {smAndDown}      = useDisplay();
-const user             = useCookie('user');
-const chatLoading      = ref(false);
-const messengerStore   = useMessengerStore();
-const form             = ref({
+const emit              = defineEmits(['exit']);
+const {$notify}         = useNuxtApp();
+const {smAndDown}       = useDisplay();
+const user              = useCookie('user');
+const chatLoading       = ref(false);
+const messengerStore    = useMessengerStore();
+const form              = ref({
   _id            : '',
   action         : 'add',
   text           : '',
   _replyToMessage: undefined
 });
-const inputFiles       = ref([]);
-const conversation     = ref({
+const inputFiles        = ref([]);
+const conversation      = ref({
   _id           : '',
   type          : '',
   members       : [],
   _pinnedMessage: undefined
 });
-const messagesLoading  = ref(false);
-const filesInput       = ref(null);
-const uploadFileDialog = ref(false);
+const messagesLoading   = ref(false);
+const filesInput        = ref(null);
+const uploadFileDialog  = ref(false);
+const fileViewer        = ref(false);
+const fileViewerMessage = ref(null);
 
 // if conversation type is private
 const contact = ref(null);
@@ -468,6 +479,16 @@ const onMessageViewed = (target) => {
   }
 };
 
+const showFile = (messageId) => {
+  fileViewerMessage.value = messageId;
+  fileViewer.value        = true;
+};
+
+const closeFileViewer = () => {
+  fileViewerMessage.value = null;
+  fileViewer.value        = false;
+};
+
 const chatContent        = ref(null);
 const scrollPosition     = ref(0);
 const scrollToBottomFlag = ref(false);
@@ -613,7 +634,6 @@ defineExpose({
     }
 
     .messageContainer {
-      max-width: 80% !important;
 
       .messageInfo {
         left: 10px;
