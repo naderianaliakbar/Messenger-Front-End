@@ -196,8 +196,13 @@ const cancelLoading = () => {
     messengerStore.uploads[props._message].controller.abort();
   } else {
     if (messengerStore.downloads[props._message].cancelToken) {
-      messengerStore.downloads[props._message].cancelToken.cancel();
       loading.value = false;
+      messengerStore.downloads[props._message].cancelToken.cancel();
+      nextTick(() => {
+        nextTick(() => {
+          messengerStore.deleteDownload(props._message);
+        });
+      });
     }
   }
 };
@@ -274,6 +279,14 @@ const download = async () => {
                 messengerStore.deleteDownload(props._message);
               });
             }
+          }).catch((error) => {
+            // set downloading false
+            loading.value = false;
+
+            // delete download
+            nextTick(() => {
+              messengerStore.deleteDownload(props._message);
+            });
           });
         }
       }
@@ -358,9 +371,11 @@ watch(() => props.downloaded, (newValue, oldValue) => {
 });
 
 watch(() => messengerStore.downloads[props._message], (newValue, oldValue) => {
-  if (!oldValue && newValue) {
+  if (newValue) {
     // start download (get file from storage)
     loading.value = true;
+  } else {
+    loading.value = false;
   }
 });
 
