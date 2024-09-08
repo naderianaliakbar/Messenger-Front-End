@@ -7,6 +7,7 @@ export const useMessengerStore = defineStore('messenger', {
             messages     : {},
             users        : {},
             uploads      : {},
+            downloads    : {},
         }
     },
     actions: {
@@ -154,6 +155,38 @@ export const useMessengerStore = defineStore('messenger', {
             if (this.messages[message._conversation][message._id]) {
                 this.messages[message._conversation][message._id]['downloading'] = false;
             }
+        },
+        addDownload(download) {
+            // create the message upload
+            if (!this.downloads[download._message])
+                this.downloads[download._message] = {};
+
+            this.downloads[download._message]['_message']           = download._message;
+            this.downloads[download._message]['_conversation']      = download._conversation;
+            this.downloads[download._message]['cancelToken']        = download.cancelToken;
+            this.downloads[download._message]['downloadedBytes']    = download.downloadedBytes;
+            this.downloads[download._message]['downloadedProgress'] = download.downloadedProgress;
+
+        },
+        updateDownloadProgress(_message, progress) {
+            this.downloads[_message]['downloadedBytes']    = progress.downloadedBytes;
+            this.downloads[_message]['downloadedProgress'] = progress.downloadedProgress;
+        },
+        deleteDownload(_message) {
+            if (this.downloads[_message]) {
+                delete this.downloads[_message];
+            }
+        },
+        setDownloadState(_conversation, _message, state) {
+            if (this.messages[_conversation][_message]) {
+                this.messages[_conversation][_message]['downloaded'] = state;
+            }
+        },
+        clearDownloads() {
+            Object.values(this.downloads).forEach(upload => {
+                // delete the download
+                delete this.downloads[upload._message];
+            })
         },
     },
     persist: true

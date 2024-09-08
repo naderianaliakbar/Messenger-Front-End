@@ -135,6 +135,7 @@
                         :_id="message._id"
                         :uploading="message.uploading"
                         :downloading="message.downloading"
+                        :downloaded="message.downloaded"
                         :_conversation="conversation._id"
                         :_message="message._id"
                         :file="message.attachment"/>
@@ -234,6 +235,8 @@
         <!--    File Viewer     -->
         <MessengerFileViewer v-model="fileViewer"
                              @exit="closeFileViewer"
+                             @nextFile="fileViewerNext"
+                             @previousFile="fileViewerPrevious"
                              :_conversation="conversation._id"
                              :_message="fileViewerMessage"/>
 
@@ -479,6 +482,9 @@ const onMessageViewed = (target) => {
   }
 };
 
+
+// File Viewer Methods
+
 const showFile = (messageId) => {
   fileViewerMessage.value = messageId;
   fileViewer.value        = true;
@@ -487,6 +493,33 @@ const showFile = (messageId) => {
 const closeFileViewer = () => {
   fileViewerMessage.value = null;
   fileViewer.value        = false;
+};
+
+const conversationFiles = computed(() => {
+  let list = Object.entries(messengerStore.messages[conversation.value._id])
+      .sort(([, a], [, b]) => new Date(a.createdAt) - new Date(b.createdAt))
+      .reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+
+  return Object.values(list).filter(
+      message => ['image', 'video'].includes(message.type)
+  );
+});
+
+const fileViewerMessageIndex = computed(() => {
+  return conversationFiles.value.indexOf(
+      messengerStore.messages[conversation.value._id][fileViewerMessage.value]
+  );
+});
+
+const fileViewerNext = () => {
+  fileViewerMessage.value = conversationFiles.value[fileViewerMessageIndex.value + 1]._id;
+};
+
+const fileViewerPrevious = () => {
+  fileViewerMessage.value = conversationFiles.value[fileViewerMessageIndex.value - 1]._id;
 };
 
 const chatContent        = ref(null);

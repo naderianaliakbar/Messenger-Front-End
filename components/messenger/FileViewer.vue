@@ -12,8 +12,11 @@
       <!--   File    -->
       <div class="d-flex justify-center align-center flex-grow-1 fileContainer pl-0 pl-md-9 pr-md-3">
         <!--    Next File     -->
-        <div>
-          <v-btn class="control" variant="text" stacked>
+        <div v-if="conversationFiles.length && conversationFiles[messageIndex + 1]">
+          <v-btn class="control"
+                 @click="nextFile"
+                 variant="text"
+                 stacked>
             <v-icon color="white">mdi-arrow-right</v-icon>
           </v-btn>
         </div>
@@ -21,13 +24,14 @@
         <!--    File View     -->
         <div class="flex-grow-1">
           <div class="fileViewContainer">
-            <FileView v-if="message"
+            <FileView v-if="renderFile && message"
                       ref="fileViewRef"
                       class="h-100 w-100 pl-md-3"
                       :video-controls="true"
                       :video-muted="false"
                       :_id="message._id"
                       :downloading="message.downloading"
+                      :downloaded="message.downloaded"
                       :_conversation="props._conversation"
                       :_message="message._id"
                       :file="message.attachment"/>
@@ -35,8 +39,11 @@
         </div>
 
         <!--    Previous File     -->
-        <div>
-          <v-btn class="control" variant="text" stacked>
+        <div v-if="conversationFiles.length && conversationFiles[messageIndex - 1]">
+          <v-btn class="control"
+                 @click="previousFile"
+                 variant="text"
+                 stacked>
             <v-icon color="white">mdi-arrow-left</v-icon>
           </v-btn>
         </div>
@@ -76,10 +83,24 @@ const props = defineProps({
 });
 
 // define emits
-const emit = defineEmits(['exit']);
+const emit = defineEmits(['exit', 'nextFile', 'previousFile']);
 
 const messengerStore = useMessengerStore();
 const fileViewRef    = ref(null);
+const renderFile     = ref(true);
+
+const conversationFiles = computed(() => {
+  let list = Object.entries(messengerStore.messages[props._conversation])
+      .sort(([, a], [, b]) => new Date(a.createdAt) - new Date(b.createdAt))
+      .reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {});
+
+  return Object.values(list).filter(
+      message => ['image', 'video'].includes(message.type)
+  );
+});
 
 const message = computed(() => {
   if (props._message && props._conversation) {
@@ -89,13 +110,43 @@ const message = computed(() => {
   }
 });
 
+const messageIndex = computed(() => {
+  return conversationFiles.value.indexOf(message.value);
+});
+
 const exit = () => {
   emit('exit');
 };
 
+const nextFile = () => {
+  renderFile.value = false;
+  nextTick(() => {
+    emit('nextFile');
+    nextTick(() => {
+      renderFile.value = true;
+      nextTick(() => {
+        fileViewRef.value.download();
+      });
+    });
+  });
+};
+
+const previousFile = () => {
+  renderFile.value = false;
+  nextTick(() => {
+    emit('previousFile');
+    nextTick(() => {
+      renderFile.value = true;
+      nextTick(() => {
+        fileViewRef.value.download();
+      });
+    });
+  });
+};
+
 
 watch(() => props._message, (value, oldValue) => {
-  if (value)
+  if (value && renderFile.value)
     nextTick(() => {
       fileViewRef.value.download();
     });

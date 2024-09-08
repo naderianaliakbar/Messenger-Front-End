@@ -96,11 +96,11 @@
 </template>
 
 <script setup>
-import {ref, onMounted, onBeforeMount, watch} from "vue";
-import {useMessengerStore}                    from "~/store/messenger";
-import {useNuxtApp}                           from "#app";
-import axios                                  from "axios";
-import {da}                                   from "vuetify/locale";
+import {ref, onMounted, onBeforeMount, watch, nextTick} from "vue";
+import {useMessengerStore}                              from "~/store/messenger";
+import {useNuxtApp}                                     from "#app";
+import axios                                            from "axios";
+import {da}                                             from "vuetify/locale";
 
 // define props
 const props                = defineProps({
@@ -116,6 +116,10 @@ const props                = defineProps({
     default: false
   },
   downloading  : {
+    type   : Boolean,
+    default: false
+  },
+  downloaded   : {
     type   : Boolean,
     default: false
   },
@@ -147,9 +151,9 @@ const size                 = ref('');
 const src                  = ref(null);
 // const thumbnailVideo       = ref(null);
 const videoOptions         = ref({
-  type  : 'video/mp4',
+  type    : 'video/mp4',
   autoplay: true,
-  loop: { active: true }
+  loop    : {active: true}
 });
 
 // get load progress
@@ -157,7 +161,7 @@ const getLoadProgress = computed(() => {
   if (props.uploading) {
     return messengerStore.uploads[props._message].uploadedProgress;
   } else {
-    return progress.value;
+    return messengerStore.downloads[props._message].downloadedProgress;
   }
 });
 
@@ -169,32 +173,8 @@ const getBlobOfFile = (file, callback) => {
   };
 };
 
-// generate video thumbnail
-const generateThumbnail = (file, callback) => {
-  const canvas = document.createElement('canvas')
-  const ctx    = canvas.getContext('2d')
-
-  thumbnailVideo.value.src = file;
-
-
-  thumbnailVideo.value.onloadedmetadata = async () => {
-    canvas.width  = thumbnailVideo.value.videoWidth
-    canvas.height = thumbnailVideo.value.videoHeight
-
-    thumbnailVideo.value.currentTime = 1 // Move to 1 second to avoid black frame at the very start
-  }
-
-  thumbnailVideo.value.onseeked = () => {
-    ctx.drawImage(thumbnailVideo.value, 0, 0, canvas.width, canvas.height)
-    canvas.toBlob((blob) => {
-      if (blob) {
-        callback(blob)
-      }
-    }, 'image/jpeg')
-  }
-};
 // get size text
-const getSizeText       = (size) => {
+const getSizeText = (size) => {
   if (size === 0) return '0 بایت';
   const k     = 1024;
   const sizes = ['بایت', 'کیلوبایت', 'مگابایت', 'گیگابایت', 'ترابایت'];
@@ -215,53 +195,14 @@ const cancelLoading = () => {
     // abort the upload
     messengerStore.uploads[props._message].controller.abort();
   } else {
-    if (cancelTokenSource.value) {
-      cancelTokenSource.value.cancel();
-      cancelTokenSource.value = null;
-      loading.value           = false;
+    if (messengerStore.downloads[props._message].cancelToken) {
+      messengerStore.downloads[props._message].cancelToken.cancel();
+      loading.value = false;
     }
   }
 };
 
-const download = async () => {
-  loading.value = true;
-
-  // check if file saved in localStorage
-  let data;
-  // check file database for file
-  await $indexedDB.loadFile(props.file.file).then(
-      (blob) => {
-        // founded
-        data = blob;
-      },
-      async (error) => {
-        // file not founded so download it
-        // create cancel token source
-        cancelTokenSource.value = axios.CancelToken.source();
-
-        // download the file
-        await $axios.get(
-            config.public.API_BASE_URL +
-            'conversations/' + props._conversation
-            + '/files/' + props.file.file,
-            {
-              cancelToken       : cancelTokenSource.value.token,
-              responseType      : 'blob',
-              onDownloadProgress: (progressEvent) => {
-                progress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              }
-            }
-        ).then((response) => {
-          // set the data
-          data = response.data;
-
-          // save file in database
-          $indexedDB.saveFile(props.file.file, response.data);
-
-        });
-      }
-  );
-
+const setSrc = (data) => {
   switch (type.value) {
     case 'image':
       src.value = URL.createObjectURL(data);
@@ -269,15 +210,74 @@ const download = async () => {
     case 'video':
       videoOptions.value.type = data.type;
       src.value               = data;
-      // generateThumbnail(URL.createObjectURL(data), (thumbnailBlob) => {
-      //   src.value = URL.createObjectURL(thumbnailBlob);
-      // });
     case 'file':
       src.value = data;
       break;
   }
+};
 
-  loading.value = false;
+const download = async () => {
+  // check if file saved in localStorage
+  // check file database for file
+  await $indexedDB.loadFile(props.file.file).then(
+      (blob) => {
+        // founded
+        setSrc(blob);
+      },
+      async (error) => {
+        // file not founded so download it
+        // check download is running
+        if (messengerStore.downloads[props._message]) {
+          loading.value = true;
+        } else {
+          // create download
+          let cancelToken = axios.CancelToken.source();
+          messengerStore.addDownload({
+            _message          : props._message,
+            _conversation     : props._conversation,
+            cancelToken       : cancelToken,
+            downloadedBytes   : 0,
+            downloadedProgress: 0
+          });
+
+          // download the file
+          await $axios.get(
+              config.public.API_BASE_URL +
+              'conversations/' + props._conversation
+              + '/files/' + props.file.file,
+              {
+                cancelToken       : cancelToken.token,
+                responseType      : 'blob',
+                onDownloadProgress: (progressEvent) => {
+                  messengerStore.updateDownloadProgress(props._message, {
+                    downloadedBytes   : progressEvent.loaded,
+                    downloadedProgress: Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                  });
+                }
+              }
+          ).then(async (response) => {
+            if(response.status === 200) {
+              // set the data
+              setSrc(response.data);
+
+              // set downloading false
+              loading.value = false;
+
+              // save file in database
+              await $indexedDB.saveFile(props.file.file, response.data);
+
+              // set message Downloaded
+              messengerStore.setDownloadState(props._conversation, props._message, true);
+
+              // delete download
+              nextTick(() => {
+                messengerStore.deleteDownload(props._message);
+              });
+            }
+          });
+        }
+      }
+  );
 };
 
 onBeforeMount(() => {
@@ -302,15 +302,15 @@ onBeforeMount(() => {
   }
 
   // set the video options
-  if(props.videoControls) {
+  if (props.videoControls) {
     videoOptions.value.controls = [
-        'play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings',
-        'pip', 'airplay', 'fullscreen'
+      'play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings',
+      'pip', 'airplay', 'fullscreen'
     ];
   }
   // set muted
-  videoOptions.value.muted    = props.videoMuted;
-  if(props.videoMuted) {
+  videoOptions.value.muted = props.videoMuted;
+  if (props.videoMuted) {
     videoOptions.value.volume = 0;
   }
 });
@@ -346,6 +346,21 @@ watch(() => props.downloading, (newValue, oldValue) => {
       _id          : props._message,
       _conversation: props._conversation
     });
+  }
+});
+
+watch(() => props.downloaded, (newValue, oldValue) => {
+  if (!oldValue && newValue && !src.value) {
+    // start download (get file from storage)
+    loading.value = false;
+    download();
+  }
+});
+
+watch(() => messengerStore.downloads[props._message], (newValue, oldValue) => {
+  if (!oldValue && newValue) {
+    // start download (get file from storage)
+    loading.value = true;
   }
 });
 
