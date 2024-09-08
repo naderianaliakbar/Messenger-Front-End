@@ -92,6 +92,10 @@
     </div>
     <VideoPlayer @click="emitShow" v-if="type === 'video' && src" :src="src" :options="videoOptions"/>
 
+    <!-- Video element used for thumbnail generation -->
+<!--    <video v-if="type === 'video'" ref="thumbnailVideo" class="d-none"></video>-->
+
+
   </div>
 </template>
 
@@ -182,6 +186,31 @@ const getSizeText = (size) => {
   return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
+// const thumbnailVideo    = ref(null);
+// const generateThumbnail = (file, callback) => {
+//   const canvas = document.createElement('canvas')
+//   const ctx    = canvas.getContext('2d')
+//
+//   thumbnailVideo.value.src = file;
+//
+//
+//   thumbnailVideo.value.onloadedmetadata = async () => {
+//     canvas.width  = thumbnailVideo.value.videoWidth
+//     canvas.height = thumbnailVideo.value.videoHeight
+//
+//     thumbnailVideo.value.currentTime = 1 // Move to 1 second to avoid black frame at the very start
+//   }
+//
+//   thumbnailVideo.value.onseeked = () => {
+//     ctx.drawImage(thumbnailVideo.value, 0, 0, canvas.width, canvas.height)
+//     canvas.toBlob((blob) => {
+//       if (blob) {
+//         callback(blob)
+//       }
+//     }, 'image/jpeg')
+//   }
+// };
+
 const deleteFile = () => {
   emit('delete');
 };
@@ -199,9 +228,7 @@ const cancelLoading = () => {
       loading.value = false;
       messengerStore.downloads[props._message].cancelToken.cancel();
       nextTick(() => {
-        nextTick(() => {
-          messengerStore.deleteDownload(props._message);
-        });
+        messengerStore.deleteDownload(props._message);
       });
     }
   }
@@ -261,7 +288,7 @@ const download = async () => {
                 }
               }
           ).then(async (response) => {
-            if(response.status === 200) {
+            if (response.status === 200) {
               // set the data
               setSrc(response.data);
 
@@ -318,7 +345,7 @@ onBeforeMount(() => {
   if (props.videoControls) {
     videoOptions.value.controls = [
       'play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings',
-      'pip', 'airplay', 'fullscreen'
+      'pip', 'airplay'
     ];
   }
   // set muted
@@ -333,17 +360,13 @@ onMounted(() => {
   switch (type.value) {
     case 'image':
       if (props.file instanceof File) {
-        getBlobOfFile(props.file, (blob) => {
-          src.value = blob;
-        });
+        src.value = URL.createObjectURL(props.file);
       }
       break;
     case 'video':
       if (props.file instanceof File) {
-        getBlobOfFile(props.file, (blob) => {
-          videoOptions.value.type = props.file.type;
-          src.value               = blob;
-        });
+        videoOptions.value.type = props.file.type;
+        src.value = URL.createObjectURL(props.file);
       }
       break;
   }
@@ -363,7 +386,7 @@ watch(() => props.downloading, (newValue, oldValue) => {
 });
 
 watch(() => props.downloaded, (newValue, oldValue) => {
-  if (!oldValue && newValue && !src.value) {
+  if (newValue && !src.value) {
     // start download (get file from storage)
     loading.value = false;
     download();

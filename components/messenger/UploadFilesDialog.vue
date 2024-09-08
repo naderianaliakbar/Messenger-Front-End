@@ -11,6 +11,7 @@
         <FileView v-for="(file,index) in files"
                   :file="file"
                   :delete="true"
+                  :video-controls="true"
                   @delete="deleteFile(index)"/>
       </div>
 
