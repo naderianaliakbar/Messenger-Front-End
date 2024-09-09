@@ -332,14 +332,18 @@ const deleteMessageDialog   = ref({
 const contact = ref(null);
 
 const listOfMessages = computed(() => {
-  const sortedList = Object.entries(messengerStore.messages[conversation.value._id])
-      .sort(([, a], [, b]) => new Date(a.createdAt) - new Date(b.createdAt))
-      .reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {});
+  if(messengerStore.messages[conversation.value._id]) {
+    const sortedList = Object.entries(messengerStore.messages[conversation.value._id])
+        .sort(([, a], [, b]) => new Date(a.createdAt) - new Date(b.createdAt))
+        .reduce((acc, [key, value]) => {
+          acc[key] = value;
+          return acc;
+        }, {});
 
-  return Object.values(sortedList);
+    return Object.values(sortedList);
+  } else {
+    return [];
+  }
 });
 
 // open File Input (File Explore)
@@ -668,6 +672,16 @@ messengerStore.$onAction(({name, store, args}) => {
             chatContent.value.scrollTop = scrollTop;
           });
         });
+      }
+      break;
+    case 'deleteConversation':
+      if (conversation.value._id && args[0] === conversation.value._id) {
+        conversation.value = {
+          _id           : '',
+          type          : '',
+          members       : [],
+          _pinnedMessage: undefined
+        };
       }
       break;
   }

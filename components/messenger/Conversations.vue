@@ -69,11 +69,32 @@
 
     </v-row>
 
+    <!--     ContextMenu      -->
+    <v-menu
+        v-model="conversationContextMenu.show"
+        :style="conversationContextMenu.style"
+        :min-width="150"
+        class="mr-n5"
+        absolute
+        offset-x
+        offset-y>
+      <v-list>
+        <!--    Delete     -->
+        <v-list-item prepend-icon="mdi-delete"
+                     class="text-red"
+                     @click="deleteConversation(conversationContextMenu._id)"
+                     value="delete">
+          <v-list-item-title>حذف</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-menu>
+
     <!--  Chats List    -->
     <v-list class="listHeight mt-0 pb-5 mb-0 overflow-auto">
 
       <v-list-item v-for="(conversation, i) in listOfConversations"
                    @click="selectConversation(conversation)"
+                   @contextmenu="openConversationContextMenu($event, conversation._id)"
                    :key="i"
                    :value="conversation._id">
         <!--    Avatar      -->
@@ -112,22 +133,41 @@
 
       </v-list-item>
     </v-list>
+
+    <!--  Delete Conversation   -->
+    <DeleteConversationDialog v-model="deleteConversationDialog.show"
+                              @exit="closeDeleteConversationDialog"
+                              :_conversation="deleteConversationDialog._id"/>
+
   </div>
 </template>
 
 <script setup>
 
-import {useAPI}            from "~/composables/useAPI";
-import {useMessengerStore} from "~/store/messenger";
-import {useCookie}         from "#app";
-import PersianDate         from 'persian-date';
-import UserAvatar          from "~/components/messenger/UserAvatar.vue";
+import {useAPI}                 from "~/composables/useAPI";
+import {useMessengerStore}      from "~/store/messenger";
+import {useCookie}              from "#app";
+import PersianDate              from 'persian-date';
+import UserAvatar               from "~/components/messenger/UserAvatar.vue";
+import DeleteConversationDialog from "~/components/messenger/DeleteConversationDialog.vue";
+import {ref}                    from "vue";
 
 const emit = defineEmits(['contacts', 'select']);
 
-const loading    = ref(true);
-const listAction = ref('conversations');
-const user       = useCookie('user');
+const loading                  = ref(true);
+const listAction               = ref('conversations');
+const user                     = useCookie('user');
+const conversationContextMenu  = ref({
+  show : false,
+  _id  : undefined,
+  x    : 0,
+  y    : 0,
+  style: ''
+});
+const deleteConversationDialog = ref({
+  show: false,
+  _id : undefined
+});
 
 // get messenger store
 const messengerStore = useMessengerStore();
@@ -220,6 +260,25 @@ const getConversationDate = (conversation) => {
   }
 };
 
+const openConversationContextMenu = (event, conversationId) => {
+  event.preventDefault();
+  conversationContextMenu.value._id   = conversationId;
+  conversationContextMenu.value.x     = event.clientX;
+  conversationContextMenu.value.y     = event.clientY;
+  conversationContextMenu.value.style = {right: `${window.innerWidth - event.clientX}px`, top: `${event.clientY}px`};
+  conversationContextMenu.value.show  = true;
+};
+
+const deleteConversation = (_conversation) => {
+  deleteConversationDialog.value._id  = _conversation;
+  deleteConversationDialog.value.show = true;
+};
+
+const closeDeleteConversationDialog = () => {
+  deleteConversationDialog.value.show = false;
+};
+
+
 const getConversations = () => {
   loading.value = true;
 
@@ -227,13 +286,16 @@ const getConversations = () => {
     method: 'get',
     onResponse({response}) {
       if (response.status === 200) {
+        // clear the conversations
+        messengerStore.clearConversations();
+
         response._data.list.forEach((conversation) => {
 
           // add conversation to store
           messengerStore.addConversation(conversation);
 
           // add users of conversation
-          if(conversation.memberDetails) {
+          if (conversation.memberDetails) {
             conversation.memberDetails.forEach((user) => {
               messengerStore.addUser(user);
             });

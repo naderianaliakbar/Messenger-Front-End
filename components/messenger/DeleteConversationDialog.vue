@@ -6,14 +6,7 @@
       </v-card-title>
 
       <div class="mx-5 mb-6 text-subtitle-2">
-        <v-label>آیا از حذف پیام مطمئن هستید؟</v-label>
-
-        <!--   Delete For Everyone     -->
-        <v-checkbox v-model="deleteForEveryone"
-                    class="pa-0 mb-n4 mr-n2"
-                    label="حذف برای همه"
-                    hide-details>
-        </v-checkbox>
+        <v-label>آیا از حذف گفتگو مطمئن هستید؟</v-label>
       </div>
 
       <!--   Actions    -->
@@ -31,7 +24,8 @@
           <!--     cancel     -->
           <v-btn class="mx-2"
                  @click="closeDialog"
-                 variant="outlined">انصراف
+                 variant="outlined">
+            انصراف
           </v-btn>
         </div>
       </div>
@@ -51,10 +45,6 @@ const props = defineProps({
   _conversation: {
     type    : String,
     required: true
-  },
-  _message     : {
-    type    : String,
-    required: true
   }
 });
 
@@ -63,7 +53,6 @@ const emit = defineEmits(['exit']);
 
 const messengerStore    = useMessengerStore();
 const user              = useCookie('user');
-const deleteForEveryone = ref(false);
 const loading           = ref(false);
 const {$notify}         = useNuxtApp();
 
@@ -73,22 +62,16 @@ const closeDialog = () => {
 
 const submit = async () => {
   loading.value = true;
-  await useAPI('conversations/' + props._conversation + '/messages/' + props._message, {
+  await useAPI('conversations/' + props._conversation, {
     method: 'delete',
-    body  : {
-      deleteForEveryone: deleteForEveryone.value,
-    },
     onResponse({response}) {
       if (response.status === 200) {
         loading.value = false;
         emit('exit');
-        messengerStore.deleteMessage({
-          _id          : props._message,
-          _conversation: props._conversation
-        });
+        messengerStore.deleteConversation(props._conversation);
       } else {
         loading.value = false;
-        $notify('مشکلی در حذف پیام پیش آمد', 'error');
+        $notify('مشکلی در حذف گفتگو پیش آمد', 'error');
       }
     }
   });

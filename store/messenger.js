@@ -59,6 +59,20 @@ export const useMessengerStore = defineStore('messenger', {
             // switch for conversation type and set special fields
 
         },
+        deleteConversation(_conversation) {
+            // delete conversation
+            if(this.conversations[_conversation]) {
+                delete this.conversations[_conversation];
+
+                // delete the messages
+                if(this.messages[_conversation]) {
+                    delete this.messages[_conversation];
+                }
+            }
+        },
+        clearConversations() {
+            this.conversations = {};
+        },
         addMessage(message) {
 
             if (!this.conversations[message._conversation])
