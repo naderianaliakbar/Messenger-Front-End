@@ -116,6 +116,13 @@ socketConnection.on('messages:read', (message) => {
   messengerStore.readMessage(message, message._user);
 });
 
+socketConnection.on('messages:delete', (message) => {
+  messengerStore.deleteMessage({
+    _id          : message._id,
+    _conversation: message._conversation
+  })
+});
+
 // Conversations Events
 socketConnection.on('conversations:insert', (conversation) => {
   messengerStore.addConversation(conversation);

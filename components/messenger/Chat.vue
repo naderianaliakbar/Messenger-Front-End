@@ -85,6 +85,7 @@
               </v-list-item>
 
               <v-list-item prepend-icon="mdi-delete"
+                           class="text-red"
                            @click="deleteMessage(messageContextMenu._id)"
                            value="delete">
                 <v-list-item-title>حذف</v-list-item-title>
@@ -259,6 +260,12 @@
                            :_conversation="conversation._id"
                            :files="inputFiles"/>
 
+        <!--    DeleteMessageDialog     -->
+        <DeleteMessageDialog v-model="deleteMessageDialog.show"
+                             @exit="closeDeleteMessageDialog"
+                             :_message="deleteMessageDialog._id"
+                             :_conversation="conversation._id"/>
+
         <!--    File Viewer     -->
         <MessengerFileViewer v-model="fileViewer"
                              @exit="closeFileViewer"
@@ -281,6 +288,7 @@ import UserAvatar                                         from "~/components/mes
 import {useDisplay}                                       from "vuetify";
 import PersianDate                                        from "persian-date";
 import UploadFilesDialog                                  from "~/components/messenger/UploadFilesDialog.vue";
+import DeleteMessageDialog                                from "~/components/messenger/DeleteMessageDialog.vue";
 import FileView                                           from "~/components/messenger/FileView.vue";
 
 const emit                  = defineEmits(['exit']);
@@ -313,6 +321,10 @@ const messageContextMenu    = ref({
   x    : 0,
   y    : 0,
   style: ''
+});
+const deleteMessageDialog   = ref({
+  show: false,
+  _id : undefined
 });
 
 // if conversation type is private
@@ -578,8 +590,8 @@ const downloadMessage = async (messageId) => {
         const url = window.URL.createObjectURL(blob);
 
         // ایجاد لینک دانلود
-        const link = document.createElement('a');
-        link.href = url;
+        const link    = document.createElement('a');
+        link.href     = url;
         link.download = message.attachment.name;
 
         // کلیک خودکار روی لینک برای شروع دانلود
@@ -592,11 +604,21 @@ const downloadMessage = async (messageId) => {
       },
       (error) => {
         messengerStore.enableDownload({
-          _id: messageId,
+          _id          : messageId,
           _conversation: conversation.value._id
         });
       }
   );
+};
+
+// delete message
+const deleteMessage = (messageId) => {
+  deleteMessageDialog.value._id = messageId;
+  deleteMessageDialog.value.show = true;
+};
+
+const closeDeleteMessageDialog = () => {
+  deleteMessageDialog.value.show = false;
 };
 
 const chatContent        = ref(null);
