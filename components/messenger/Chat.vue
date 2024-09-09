@@ -66,6 +66,32 @@
         <div class="flex-grow-1 d-flex flex-column pr-md-6 pb-2 pl-md-4 pt-5 chatContent"
              ref="chatContent">
 
+          <!--     ContextMenu      -->
+          <v-menu
+              v-model="messageContextMenu.show"
+              :style="messageContextMenu.style"
+              :min-width="150"
+              class="mr-n5"
+              absolute
+              offset-x
+              offset-y>
+            <v-list>
+              <!--       Download        -->
+              <v-list-item v-if="['video','image','file','audio'].includes(getMessage(messageContextMenu._id).type)"
+                           prepend-icon="mdi-download"
+                           @click="downloadMessage(messageContextMenu._id)"
+                           value="download">
+                <v-list-item-title>دانلود</v-list-item-title>
+              </v-list-item>
+
+              <v-list-item prepend-icon="mdi-delete"
+                           @click="deleteMessage(messageContextMenu._id)"
+                           value="delete">
+                <v-list-item-title>حذف</v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
+
           <!--      Scroll To Bottom    -->
           <v-btn v-if="scrollToBottomFlag && conversation._id"
                  class="scrollToBottom"
@@ -93,6 +119,7 @@
                v-for="(message, index) in listOfMessages"
                v-intersect="onMessageViewed"
                :data-id="message._id"
+               @contextmenu="openMessageContextMenu($event,message._id)"
                class="d-flex mb-1 observerTrigger">
 
             <v-spacer v-if="message._sender !== user._id"></v-spacer>
@@ -256,30 +283,37 @@ import PersianDate                                        from "persian-date";
 import UploadFilesDialog                                  from "~/components/messenger/UploadFilesDialog.vue";
 import FileView                                           from "~/components/messenger/FileView.vue";
 
-const emit              = defineEmits(['exit']);
-const {$notify}         = useNuxtApp();
-const {smAndDown}       = useDisplay();
-const user              = useCookie('user');
-const chatLoading       = ref(false);
-const messengerStore    = useMessengerStore();
-const form              = ref({
+const emit                  = defineEmits(['exit']);
+const {$notify, $indexedDB} = useNuxtApp();
+const {smAndDown}           = useDisplay();
+const user                  = useCookie('user');
+const chatLoading           = ref(false);
+const messengerStore        = useMessengerStore();
+const form                  = ref({
   _id            : '',
   action         : 'add',
   text           : '',
   _replyToMessage: undefined
 });
-const inputFiles        = ref([]);
-const conversation      = ref({
+const inputFiles            = ref([]);
+const conversation          = ref({
   _id           : '',
   type          : '',
   members       : [],
   _pinnedMessage: undefined
 });
-const messagesLoading   = ref(false);
-const filesInput        = ref(null);
-const uploadFileDialog  = ref(false);
-const fileViewer        = ref(false);
-const fileViewerMessage = ref(null);
+const messagesLoading       = ref(false);
+const filesInput            = ref(null);
+const uploadFileDialog      = ref(false);
+const fileViewer            = ref(false);
+const fileViewerMessage     = ref(null);
+const messageContextMenu    = ref({
+  show : false,
+  _id  : undefined,
+  x    : 0,
+  y    : 0,
+  style: ''
+});
 
 // if conversation type is private
 const contact = ref(null);
@@ -520,6 +554,49 @@ const fileViewerNext = () => {
 
 const fileViewerPrevious = () => {
   fileViewerMessage.value = conversationFiles.value[fileViewerMessageIndex.value - 1]._id;
+};
+
+const openMessageContextMenu = (event, messageId) => {
+  event.preventDefault();
+  messageContextMenu.value._id   = messageId;
+  messageContextMenu.value.x     = event.clientX;
+  messageContextMenu.value.y     = event.clientY;
+  messageContextMenu.value.style = {right: `${window.innerWidth - event.clientX}px`, top: `${event.clientY}px`};
+  messageContextMenu.value.show  = true;
+};
+
+const getMessage = (messageId) => {
+  return messengerStore.messages[conversation.value._id][messageId] ?? undefined;
+};
+
+// download message
+const downloadMessage = async (messageId) => {
+  let message = getMessage(messageId);
+  await $indexedDB.loadFile(message.attachment.file).then(
+      (blob) => {
+        // ایجاد URL موقت از Blob
+        const url = window.URL.createObjectURL(blob);
+
+        // ایجاد لینک دانلود
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = message.attachment.name;
+
+        // کلیک خودکار روی لینک برای شروع دانلود
+        document.body.appendChild(link);
+        link.click();
+
+        // پاک کردن لینک از DOM و آزاد کردن URL
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      (error) => {
+        messengerStore.enableDownload({
+          _id: messageId,
+          _conversation: conversation.value._id
+        });
+      }
+  );
 };
 
 const chatContent        = ref(null);

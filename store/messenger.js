@@ -187,7 +187,7 @@ export const useMessengerStore = defineStore('messenger', {
                 // delete the download
                 delete this.downloads[upload._message];
             })
-        },
+        }
     },
     persist: true
 });

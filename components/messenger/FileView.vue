@@ -1,5 +1,7 @@
 <template>
-  <div class="d-flex w-100">
+  <div class="d-flex w-100" :class="[
+      type === 'file' ? 'my-5' : ''
+  ]">
     <!-- file loading progress  -->
     <v-progress-circular v-if="loading && type === 'file'"
                          v-model="getLoadProgress"
@@ -414,7 +416,7 @@ defineExpose({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 200px;
+  max-width: 150px;
 }
 
 .videoControls {
