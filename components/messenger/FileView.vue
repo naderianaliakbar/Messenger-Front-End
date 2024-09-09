@@ -78,7 +78,7 @@
         <v-progress-circular v-if="loading"
                              v-model="getLoadProgress"
                              class=""
-                             color="white"
+                             color="secondary"
                              size="40">
           <v-icon color="secondary" @click="cancelLoading">mdi-close</v-icon>
         </v-progress-circular>
@@ -88,7 +88,21 @@
     <!--  Video File when downloaded   -->
     <div v-if="type === 'video' && src && !videoControls"
          class="d-flex justify-center align-center w-100 h-100 position-absolute videoControls">
-      <v-btn @click="emitShow" class="w-100 h-100" size="small" variant="text" stacked>
+
+      <!-- loading progress  -->
+      <v-progress-circular v-if="loading"
+                           v-model="getLoadProgress"
+                           class=""
+                           color="secondary"
+                           size="40">
+        <v-icon color="secondary" @click="cancelLoading">mdi-close</v-icon>
+      </v-progress-circular>
+
+      <v-btn v-if="!loading" @click="emitShow"
+             class="w-100 h-100"
+             size="small"
+             variant="text"
+             stacked>
         <v-icon color="white">mdi-play</v-icon>
       </v-btn>
     </div>
@@ -225,6 +239,12 @@ const cancelLoading = () => {
   if (props.uploading) {
     // abort the upload
     messengerStore.uploads[props._message].controller.abort();
+    loading.value = false;
+    nextTick(() => {
+      messengerStore.deleteUpload({
+        _message: props._message
+      });
+    });
   } else {
     if (messengerStore.downloads[props._message].cancelToken) {
       loading.value = false;

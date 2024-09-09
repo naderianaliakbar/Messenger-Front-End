@@ -66,6 +66,7 @@ const messengerStore    = useMessengerStore();
 const user              = useCookie('user');
 const deleteForEveryone = ref(false);
 const loading           = ref(false);
+const {$notify}         = useNuxtApp();
 
 const closeDialog = () => {
   emit('exit');
@@ -86,6 +87,9 @@ const submit = async () => {
           _id          : props._message,
           _conversation: props._conversation
         });
+      } else {
+        loading.value = false;
+        $notify('مشکلی در حذف پیام پیش آمد', 'error');
       }
     }
   });

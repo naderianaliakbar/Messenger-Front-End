@@ -74,7 +74,17 @@ export const useMessengerStore = defineStore('messenger', {
             this.messages[message._conversation][message._id]['createdAt']     = message.createdAt;
             this.messages[message._conversation][message._id]['updatedAt']     = message.updatedAt;
             this.messages[message._conversation][message._id]['_conversation'] = message._conversation;
-            this.messages[message._conversation][message._id]['_readBy']       = message._readBy;
+
+            if (this.messages[message._conversation][message._id]['_readBy']) {
+                message._readBy.forEach((userId) => {
+                    this.readMessage({
+                        _id: message._id,
+                        _conversation: message._conversation
+                    },userId)
+                });
+            } else {
+                this.messages[message._conversation][message._id]['_readBy'] = message._readBy;
+            }
 
             // add uploading if exists
             if ('uploading' in message) {
@@ -96,14 +106,24 @@ export const useMessengerStore = defineStore('messenger', {
 
         },
         readMessage(message, userId) {
-            if (!this.messages[message._conversation][message._id]._readBy.includes(userId)) {
-                // push user id to _readBy
-                this.messages[message._conversation][message._id]._readBy.push(userId);
+            if (this.messages[message._conversation][message._id]) {
+                if (!this.messages[message._conversation][message._id]._readBy.includes(userId)) {
+                    // push user id to _readBy
+                    this.messages[message._conversation][message._id]._readBy.push(userId);
+                }
+            } else {
+                this.messages[message._conversation][message._id]         = {};
+                this.messages[message._conversation][message._id]._readBy = [userId];
             }
         },
         deleteMessage(message) {
             if (this.messages[message._conversation][message._id]) {
                 delete this.messages[message._conversation][message._id];
+            }
+        },
+        clearMessages(_conversation) {
+            if (this.messages[_conversation]) {
+                this.messages[_conversation] = {};
             }
         },
         changeReadCount(_conversation, operation) {
@@ -134,6 +154,10 @@ export const useMessengerStore = defineStore('messenger', {
         },
         deleteUpload(upload) {
             if (this.uploads[upload._message]) {
+                // delete upload message
+                delete this.messages[this.uploads[upload._message]._conversation][upload._message];
+
+                // delete the conversation
                 delete this.uploads[upload._message];
             }
         },

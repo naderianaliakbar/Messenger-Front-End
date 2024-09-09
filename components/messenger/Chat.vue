@@ -116,7 +116,7 @@
           <v-spacer></v-spacer>
 
           <!--     Messages    -->
-          <div v-if="conversation._id"
+          <div v-if="conversation._id && renderMessages"
                v-for="(message, index) in listOfMessages"
                v-intersect="onMessageViewed"
                :data-id="message._id"
@@ -313,6 +313,7 @@ const conversation          = ref({
 const messagesLoading       = ref(false);
 const filesInput            = ref(null);
 const uploadFileDialog      = ref(false);
+const renderMessages        = ref(true);
 const fileViewer            = ref(false);
 const fileViewerMessage     = ref(null);
 const messageContextMenu    = ref({
@@ -387,6 +388,7 @@ const getMessages = async () => {
     method: 'get',
     onResponse({response}) {
       if (response.status === 200) {
+        messengerStore.clearMessages(conversation.value._id);
         response._data.list.forEach((message) => {
           messengerStore.addMessage(message);
         });
@@ -613,7 +615,7 @@ const downloadMessage = async (messageId) => {
 
 // delete message
 const deleteMessage = (messageId) => {
-  deleteMessageDialog.value._id = messageId;
+  deleteMessageDialog.value._id  = messageId;
   deleteMessageDialog.value.show = true;
 };
 
@@ -654,6 +656,18 @@ messengerStore.$onAction(({name, store, args}) => {
             scrollToBottom();
           }, 100);
         }
+      }
+      break;
+    case 'deleteMessage':
+      if (conversation.value._id && args[0]._conversation === conversation.value._id) {
+        let scrollTop        = chatContent.value.scrollTop;
+        renderMessages.value = false;
+        nextTick(() => {
+          renderMessages.value = true;
+          nextTick(() => {
+            chatContent.value.scrollTop = scrollTop;
+          });
+        });
       }
       break;
   }
