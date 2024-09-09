@@ -125,6 +125,13 @@ socketConnection.on('messages:delete', (message) => {
 
 // Conversations Events
 socketConnection.on('conversations:insert', (conversation) => {
+  // add users of conversation
+  if (conversation.memberDetails) {
+    conversation.memberDetails.forEach((user) => {
+      messengerStore.addUser(user);
+    });
+  }
+
   messengerStore.addConversation(conversation);
 });
 

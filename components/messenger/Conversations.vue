@@ -291,15 +291,15 @@ const getConversations = () => {
 
         response._data.list.forEach((conversation) => {
 
-          // add conversation to store
-          messengerStore.addConversation(conversation);
-
           // add users of conversation
           if (conversation.memberDetails) {
             conversation.memberDetails.forEach((user) => {
               messengerStore.addUser(user);
             });
           }
+
+          // add conversation to store
+          messengerStore.addConversation(conversation);
 
           // add lastMessage to store
           if (conversation.lastMessage)
