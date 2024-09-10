@@ -84,6 +84,16 @@
                 <v-list-item-title>دانلود</v-list-item-title>
               </v-list-item>
 
+              <!--       Edit        -->
+              <v-list-item
+                  v-if="getMessage(messageContextMenu._id).type === 'text' && getMessage(messageContextMenu._id)._sender === user._id"
+                  prepend-icon="mdi-pencil"
+                  @click="editMessage(messageContextMenu._id)"
+                  value="download">
+                <v-list-item-title>ویرایش</v-list-item-title>
+              </v-list-item>
+
+              <!--       Delete       -->
               <v-list-item prepend-icon="mdi-delete"
                            class="text-red"
                            @click="deleteMessage(messageContextMenu._id)"
@@ -96,6 +106,9 @@
           <!--      Scroll To Bottom    -->
           <v-btn v-if="scrollToBottomFlag && conversation._id"
                  class="scrollToBottom"
+                 :class="[
+                     formTop.action ? 'mb-12 mb-md-16' : 'mb-4'
+                 ]"
                  @click="scrollToBottom"
                  icon>
             <v-icon>mdi-arrow-down</v-icon>
@@ -149,7 +162,7 @@
                 message._sender === user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== user._id)) ? '' : 'mr-12',
                 conversation.type === 'private' && message._sender === contact._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== contact._id)) ? '' : 'ml-12',
                 message.type === 'text' ? 'px-4 py-1': '',
-                message.type === 'file' ? 'px-4 py-2': '',
+                ['audio','file'].includes(message.type) ? 'px-4 py-2': '',
                 ['video','image'].includes(message.type) ? 'px-0 pt-0 py-0' : '',
                 message.uploading ? 'pb-0' : ''
             ]" flat>
@@ -188,6 +201,12 @@
                 <v-label class="text-caption time">
                   {{ new PersianDate(new Date(message.createdAt)).toLocale('fa').format('h:mm a') }}
                 </v-label>
+
+                <!--       isEdited         -->
+                <v-label v-if="message.isEdited"
+                         class="text-caption mr-1 isEdited">
+                  ویرایش شده
+                </v-label>
               </div>
             </v-card>
 
@@ -208,9 +227,61 @@
         </div>
 
         <!--  Chat Form   -->
-        <div v-if="conversation.type" class="d-flex">
-          <v-form class="mx-5 w-100" @submit.prevent="sendTextMessage">
-            <v-text-field class="rounded-0"
+        <div v-if="conversation.type" class="d-flex flex-column mx-0 mx-md-5 mb-n5 mb-md-0">
+          <!--      From Top       -->
+          <div v-if="formTop.action"
+               class="w-100 bg-white">
+            <v-card class="rounded-t-lg mb-n1 pb-2 d-flex">
+
+              <!--       action icon         -->
+              <!--       edit         -->
+              <v-icon v-if="formTop.action === 'edit'"
+                      class="pr-6 pl-6 pt-6"
+                      color="secondary">
+                mdi-pencil
+              </v-icon>
+
+
+              <!--        Message         -->
+              <v-sheet class="flex-grow-1 d-flex flex-column pr-2 pr-md-5"
+                       border="s-lg secondary">
+                <!--         Action or sender name         -->
+                <v-label class="text-caption text-secondary mt-1">
+                  <span v-if="formTop.action === 'edit'">ویرایش</span>
+                </v-label>
+
+                <v-label class="text-subtitle-2">
+                  <!--        Text            -->
+                  <v-span v-if="getMessage(getFormTopId()).type === 'text'"
+                          v-html="getMessage(getFormTopId()).content"></v-span>
+                  <!--        Image            -->
+                  <v-span v-if="getMessage(getFormTopId()).type === 'image'">تصویر</v-span>
+                  <!--        Video            -->
+                  <v-span v-if="getMessage(getFormTopId()).type === 'video'">تصویر</v-span>
+                  <!--        Audio            -->
+                  <v-span v-if="getMessage(getFormTopId()).type === 'audio'">صدا</v-span>
+                  <!--        File            -->
+                  <v-span v-if="getMessage(getFormTopId()).type === 'file'">فایل</v-span>
+
+                </v-label>
+              </v-sheet>
+
+              <!--       close         -->
+              <v-btn type="small"
+                     @click="clearFormTop"
+                     variant="text"
+                     icon>
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+
+
+            </v-card>
+          </div>
+
+          <!--     Form     -->
+          <v-form class="w-100" @submit.prevent="sendTextMessage">
+
+            <v-text-field class="rounded-0 elevation-0"
                           v-model="form.text"
                           variant="solo"
                           placeholder="پیام خود را بنویسید..."
@@ -241,11 +312,18 @@
                   </v-btn>
 
                   <!--       Send       -->
-                  <v-btn color="secondary" @click="sendTextMessage" type="submit">
-                    ارسال
-                    <template v-slot:append>
-                      <v-icon class="sendIcon">mdi-send-outline</v-icon>
-                    </template>
+                  <v-btn color="secondary"
+                         :loading="form.loading"
+                         @click="sendTextMessage"
+                         class="mt-0"
+                         size="small"
+                         variant="text"
+                         type="submit"
+                         icon>
+                    <!--         Tiny Icon           -->
+                    <v-icon color="blue" class="sendIcon mr-1">
+                      mdi-send-outline
+                    </v-icon>
                   </v-btn>
                 </div>
               </template>
@@ -301,7 +379,11 @@ const form                  = ref({
   _id            : '',
   action         : 'add',
   text           : '',
-  _replyToMessage: undefined
+  _replyToMessage: undefined,
+  loading        : false
+});
+const formTop               = ref({
+  action: ''
 });
 const inputFiles            = ref([]);
 const conversation          = ref({
@@ -332,7 +414,7 @@ const deleteMessageDialog   = ref({
 const contact = ref(null);
 
 const listOfMessages = computed(() => {
-  if(messengerStore.messages[conversation.value._id]) {
+  if (messengerStore.messages[conversation.value._id]) {
     const sortedList = Object.entries(messengerStore.messages[conversation.value._id])
         .sort(([, a], [, b]) => new Date(a.createdAt) - new Date(b.createdAt))
         .reduce((acc, [key, value]) => {
@@ -428,28 +510,57 @@ const createConversation = async () => {
 
 // send text message
 const sendTextMessage = async () => {
-  // add a new Text Message
-  if (form.value.action === 'add') {
-    // wait for create conversation
-    if (!conversation.value._id) {
-      await createConversation();
-    }
-
-    await useAPI('conversations/' + conversation.value._id + '/messages', {
-      method: 'post',
-      body  : {
-        type           : 'text',
-        content        : form.value.text,
-        _replyToMessage: form.value._replyToMessage
-      },
-      onResponse({response}) {
-        if (response.status === 200) {
-          form.value.text            = '';
-          form.value._replyToMessage = undefined;
-          messengerStore.addMessage(response._data);
-        }
+  console.log('this happend');
+  if (form.value.text) {
+    form.value.loading = true;
+    // add a new Text Message
+    if (form.value.action === 'add') {
+      // wait for create conversation
+      if (!conversation.value._id) {
+        await createConversation();
       }
-    });
+
+      await useAPI('conversations/' + conversation.value._id + '/messages', {
+        method: 'post',
+        body  : {
+          type           : 'text',
+          content        : form.value.text,
+          _replyToMessage: form.value._replyToMessage
+        },
+        onResponse({response}) {
+          if (response.status === 200) {
+            form.value.text            = '';
+            form.value._replyToMessage = undefined;
+            messengerStore.addMessage(response._data);
+            form.value.loading = false;
+          } else {
+            $notify('مشکلی در ارسال پیام به وجود آمد', 'error');
+            form.value.loading = false;
+          }
+        }
+      });
+    } else if (form.value.action === 'edit') {
+      await useAPI('conversations/' + conversation.value._id + '/messages/' + form.value._id, {
+        method: 'put',
+        body  : {
+          content: form.value.text
+        },
+        onResponse({response}) {
+          if (response.status === 200) {
+            form.value.text = '';
+            messengerStore.addMessage(response._data);
+            form.value.loading = false;
+            clearFormTop();
+          } else {
+            $notify('مشکلی در ارسال پیام به وجود آمد', 'error');
+            form.value.loading = false;
+          }
+        }
+      });
+    } else {
+      $notify('عملیات مشخص نیست', 'error');
+      form.value.loading = false;
+    }
   }
 };
 
@@ -627,6 +738,33 @@ const closeDeleteMessageDialog = () => {
   deleteMessageDialog.value.show = false;
 };
 
+const editMessage = (_message) => {
+  formTop.value.action = 'edit';
+  form.value._id       = _message;
+  form.value.text      = getMessage(_message).content;
+  form.value.action    = 'edit';
+};
+
+const clearFormTop = () => {
+  if (formTop.value.action === 'edit') {
+    if (form.value._replyToMessage) {
+      formTop.value.action = 'reply';
+    } else {
+      formTop.value.action = '';
+    }
+    form.value._id    = undefined;
+    form.value.text   = '';
+    form.value.action = 'add';
+  } else if (formTop.value.action === 'reply') {
+    form.value._replyToMessage = undefined;
+    formTop.value.action       = '';
+  }
+};
+
+const getFormTopId = () => {
+  return (formTop.value.action === 'edit' ? form.value._id : form.value._replyToMessage);
+};
+
 const chatContent        = ref(null);
 const scrollPosition     = ref(0);
 const scrollToBottomFlag = ref(false);
@@ -789,7 +927,7 @@ defineExpose({
     .scrollToBottom {
       position: fixed;
       z-index: 3;
-      bottom: 90px;
+      bottom: 70px;
       margin-right: 1rem;
     }
 
@@ -797,6 +935,10 @@ defineExpose({
 
       .messageInfo {
         left: 10px;
+
+        .isEdited {
+          font-size: 0.6rem !important;
+        }
 
         .time {
           font-size: 0.6rem !important;

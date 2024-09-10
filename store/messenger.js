@@ -61,11 +61,11 @@ export const useMessengerStore = defineStore('messenger', {
         },
         deleteConversation(_conversation) {
             // delete conversation
-            if(this.conversations[_conversation]) {
+            if (this.conversations[_conversation]) {
                 delete this.conversations[_conversation];
 
                 // delete the messages
-                if(this.messages[_conversation]) {
+                if (this.messages[_conversation]) {
                     delete this.messages[_conversation];
                 }
             }
@@ -92,12 +92,17 @@ export const useMessengerStore = defineStore('messenger', {
             if (this.messages[message._conversation][message._id]['_readBy']) {
                 message._readBy.forEach((userId) => {
                     this.readMessage({
-                        _id: message._id,
+                        _id          : message._id,
                         _conversation: message._conversation
-                    },userId)
+                    }, userId)
                 });
             } else {
                 this.messages[message._conversation][message._id]['_readBy'] = message._readBy;
+            }
+
+            // check isEdited
+            if (message.isEdited) {
+                this.messages[message._conversation][message._id]['isEdited'] = message.isEdited;
             }
 
             // add uploading if exists

@@ -350,7 +350,8 @@ onBeforeMount(() => {
   } else if (props.file.type.startsWith('video/')) {
     type.value = 'video';
   } else if (props.file.type.startsWith('audio/')) {
-    type.value = 'audio';
+    // exception (Audio player is not ready)
+    type.value = 'file';
   } else {
     type.value = 'file';
   }
