@@ -225,16 +225,19 @@
             </v-card>
 
             <!--    User Avatar    -->
-            <UserAvatar
-                v-if="message._sender !== user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== message._sender))"
-                class="mr-1 ml-1"
-                size="40"
-                :color="messengerStore.users[message._sender].color"
-                :online="messengerStore.users[message._sender].online"
-                :firstName="messengerStore.users[message._sender].firstName"
-                :lastName="messengerStore.users[message._sender].lastName"
-                :avatars="messengerStore.users[message._sender].avatars">
-            </UserAvatar>
+            <div class="d-flex flex-column">
+              <v-spacer></v-spacer>
+              <UserAvatar
+                  v-if="message._sender !== user._id && (index === listOfMessages.length - 1 || (listOfMessages[index + 1] && listOfMessages[index + 1]._sender !== message._sender))"
+                  class="mr-1 ml-1"
+                  size="40"
+                  :color="messengerStore.users[message._sender].color"
+                  :online="messengerStore.users[message._sender].online"
+                  :firstName="messengerStore.users[message._sender].firstName"
+                  :lastName="messengerStore.users[message._sender].lastName"
+                  :avatars="messengerStore.users[message._sender].avatars">
+              </UserAvatar>
+            </div>
 
           </div>
 
@@ -453,6 +456,40 @@ const getConversationName = () => {
   }
 };
 
+const getLastSeenText = (lastSeen) => {
+  if(lastSeen) {
+    if(lastSeen === 'recently') {
+      return 'آخرین بازدید اخیرا';
+    } else {
+      const nowDate   = new PersianDate();
+      const updatedAt = new PersianDate(new Date(lastSeen));
+
+      // check year
+      if (updatedAt.year() === nowDate.year()) {
+
+        // check month
+        if (updatedAt.month() === nowDate.month()) {
+
+          // check day
+          if (updatedAt.day() === nowDate.day()) {
+            return 'آخرین بازدید ' + updatedAt.toLocale('fa').format('h:mm a');
+          } else {
+            return 'آخرین بازدید ' + updatedAt.toLocale('fa').format('D MMMM');
+          }
+
+        } else {
+          return 'آخرین بازدید ' + updatedAt.toLocale('fa').format('D MMMM');
+        }
+
+      } else {
+        return 'آخرین بازدید ' + updatedAt.toLocale('fa').format('D MMMM YYYY');
+      }
+    }
+  } else {
+    return 'آخرین بازدید اخیرا';
+  }
+};
+
 // get contact status in private chats
 const getContactStatus = () => {
   if (contact.value.status.operation && contact.value.status._conversation === conversation.value._id) {
@@ -465,7 +502,7 @@ const getContactStatus = () => {
     if (contact.value.online) {
       return 'آنلاین';
     } else {
-      return contact.value.lastSeen ?? 'آخرین بازدید اخیرا';
+      return getLastSeenText(contact.value.lastSeen);
     }
   }
 };

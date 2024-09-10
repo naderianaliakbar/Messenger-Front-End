@@ -37,9 +37,11 @@ export default defineNuxtPlugin(nuxtApp => {
     // You can alternatively use this format, which comes with automatic type support
     return {
         provide: {
-            createSocketConnection,
-            destroySocketConnection,
-            getSocketConnection
+            socketConnection: {
+                create: createSocketConnection,
+                destroy: destroySocketConnection,
+                get: getSocketConnection,
+            }
         }
     }
-})
+});

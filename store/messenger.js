@@ -40,6 +40,22 @@ export const useMessengerStore = defineStore('messenger', {
                 this.users[user._id]['lastSeen'] = null;
             }
         },
+        setUserOnline(data) {
+            if (!this.users[data._user]) {
+                this.users[data._user] = {
+                    lastSeen: data.lastSeen,
+                    online  : data.status
+                };
+            } else {
+                // set user last seen
+                if (data.lastSeen) {
+                    this.users[data._user]['lastSeen'] = data.lastSeen;
+                }
+
+                // set user online status
+                this.users[data._user]['online'] = data.status;
+            }
+        },
         addConversation(conversation) {
 
             if (!this.conversations[conversation._id])

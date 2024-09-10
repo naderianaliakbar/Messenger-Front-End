@@ -38,13 +38,13 @@
 </template>
 
 <script setup>
-import {ref, onBeforeMount}    from "vue";
-import {useDisplay}            from "vuetify";
-import Chat                    from "~/components/messenger/Chat.vue";
-import Contacts                from "~/components/messenger/Contacts.vue";
-import Conversations           from "~/components/messenger/Conversations.vue";
-import {useCookie, useNuxtApp} from "#app";
-import {useMessengerStore}     from "~/store/messenger";
+import {ref, onBeforeMount, onMounted} from "vue";
+import {useDisplay}                    from "vuetify";
+import Chat                            from "~/components/messenger/Chat.vue";
+import Contacts                        from "~/components/messenger/Contacts.vue";
+import Conversations                   from "~/components/messenger/Conversations.vue";
+import {useCookie, useNuxtApp}         from "#app";
+import {useMessengerStore}             from "~/store/messenger";
 
 definePageMeta({
   layout      : 'blank',
@@ -54,7 +54,8 @@ definePageMeta({
 });
 
 // get Nuxt App Functions
-const {$notify, $getSocketConnection, $destroySocketConnection} = useNuxtApp();
+const {$socketConnection} = useNuxtApp();
+const socketConnection    = ref(null);
 
 // get user from Cookie
 const user = useCookie('user');
@@ -99,45 +100,23 @@ const onConversationSelected = (conversation) => {
   changePageAction('chat');
 };
 
-// get socket connection
-let socketConnection = $getSocketConnection();
+// listen to store
 
-// init socket events
-// Messages Events
-socketConnection.on('messages:insert', (message) => {
-  // add message
-  messengerStore.addMessage(message);
+// check users online
+let checkedUsers = [];
+messengerStore.$onAction(({name, store, args}) => {
+  switch (name) {
+    case "addUser":
+      if (!checkedUsers.includes(args[0]._id)) {
+        socketConnection.value.emit('get:users:online', {
+          _user: args[0]._id
+        });
 
-  // add unread Counts
-  messengerStore.changeReadCount(message._conversation, 'add');
-});
-
-socketConnection.on('messages:read', (message) => {
-  messengerStore.readMessage(message, message._user);
-});
-
-socketConnection.on('messages:update', (message) => {
-  // add message
-  messengerStore.addMessage(message);
-});
-
-socketConnection.on('messages:delete', (message) => {
-  messengerStore.deleteMessage({
-    _id          : message._id,
-    _conversation: message._conversation
-  })
-});
-
-// Conversations Events
-socketConnection.on('conversations:insert', (conversation) => {
-  // add users of conversation
-  if (conversation.memberDetails) {
-    conversation.memberDetails.forEach((user) => {
-      messengerStore.addUser(user);
-    });
+        // add to checked users
+        checkedUsers.push(args[0]._id);
+      }
+      break
   }
-
-  messengerStore.addConversation(conversation);
 });
 
 
@@ -146,6 +125,54 @@ onBeforeMount(() => {
   // clear the recent uploads
   messengerStore.clearUploads();
   messengerStore.clearDownloads();
+});
+
+onMounted(() => {
+  // get socket connection
+  socketConnection.value = $socketConnection.get();
+
+  // init socket events
+  // Messages Events
+  socketConnection.value.on('messages:insert', (message) => {
+    // add message
+    messengerStore.addMessage(message);
+
+    // add unread Counts
+    messengerStore.changeReadCount(message._conversation, 'add');
+  });
+
+  socketConnection.value.on('messages:read', (message) => {
+    messengerStore.readMessage(message, message._user);
+  });
+
+  socketConnection.value.on('messages:update', (message) => {
+    // add message
+    messengerStore.addMessage(message);
+  });
+
+  socketConnection.value.on('messages:delete', (message) => {
+    messengerStore.deleteMessage({
+      _id          : message._id,
+      _conversation: message._conversation
+    })
+  });
+
+  // Conversations Events
+  socketConnection.value.on('conversations:insert', (conversation) => {
+    // add users of conversation
+    if (conversation.memberDetails) {
+      conversation.memberDetails.forEach((user) => {
+        messengerStore.addUser(user);
+      });
+    }
+
+    messengerStore.addConversation(conversation);
+  });
+
+  // Users Events
+  socketConnection.value.on('users:online', (userOnline) => {
+    messengerStore.setUserOnline(userOnline);
+  });
 });
 
 
