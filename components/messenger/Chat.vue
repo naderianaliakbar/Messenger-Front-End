@@ -76,6 +76,14 @@
               offset-x
               offset-y>
             <v-list>
+              <!--       Reply        -->
+              <v-list-item
+                  prepend-icon="mdi-reply-outline"
+                  @click="replyMessage(messageContextMenu._id)"
+                  value="download">
+                <v-list-item-title>پاسخ</v-list-item-title>
+              </v-list-item>
+
               <!--       Download        -->
               <v-list-item v-if="['video','image','file','audio'].includes(getMessage(messageContextMenu._id).type)"
                            prepend-icon="mdi-download"
@@ -166,6 +174,12 @@
                 ['video','image'].includes(message.type) ? 'px-0 pt-0 py-0' : '',
                 message.uploading ? 'pb-0' : ''
             ]" flat>
+              <!--      Reply Message        -->
+              <MessengerReplyMessage v-if="message._replyToMessage"
+                                     class="mr-n4 ml-n5 mt-n1 mb-2"
+                                     :class="message._sender === user._id ? 'bg-lime-accent-2' : 'border-b-lg'"
+                                     :_conversation="conversation._id"
+                                     :_message="message._replyToMessage"/>
 
               <!--      Attachments         -->
               <FileView v-if="message.attachment"
@@ -241,30 +255,19 @@
                 mdi-pencil
               </v-icon>
 
+              <!--      reply        -->
+              <v-icon v-if="formTop.action === 'reply'"
+                      class="pr-6 pl-6 pt-6"
+                      color="secondary">
+                mdi-reply-outline
+              </v-icon>
+
 
               <!--        Message         -->
-              <v-sheet class="flex-grow-1 d-flex flex-column pr-2 pr-md-5"
-                       border="s-lg secondary">
-                <!--         Action or sender name         -->
-                <v-label class="text-caption text-secondary mt-1">
-                  <span v-if="formTop.action === 'edit'">ویرایش</span>
-                </v-label>
-
-                <v-label class="text-subtitle-2">
-                  <!--        Text            -->
-                  <v-span v-if="getMessage(getFormTopId()).type === 'text'"
-                          v-html="getMessage(getFormTopId()).content"></v-span>
-                  <!--        Image            -->
-                  <v-span v-if="getMessage(getFormTopId()).type === 'image'">تصویر</v-span>
-                  <!--        Video            -->
-                  <v-span v-if="getMessage(getFormTopId()).type === 'video'">تصویر</v-span>
-                  <!--        Audio            -->
-                  <v-span v-if="getMessage(getFormTopId()).type === 'audio'">صدا</v-span>
-                  <!--        File            -->
-                  <v-span v-if="getMessage(getFormTopId()).type === 'file'">فایل</v-span>
-
-                </v-label>
-              </v-sheet>
+              <MessengerReplyMessage class="flex-grow-1"
+                                     :action="formTop.action"
+                                     :_message="getFormTopId()"
+                                     :_conversation="conversation._id"/>
 
               <!--       close         -->
               <v-btn type="small"
@@ -281,7 +284,8 @@
           <!--     Form     -->
           <v-form class="w-100" @submit.prevent="sendTextMessage">
 
-            <v-text-field class="rounded-0 elevation-0"
+            <v-text-field class="elevation-0"
+                          :rounded="smAndDown ? 0 : (formTop.action ? 'b-gl' : 'md')"
                           v-model="form.text"
                           variant="solo"
                           placeholder="پیام خود را بنویسید..."
@@ -510,7 +514,6 @@ const createConversation = async () => {
 
 // send text message
 const sendTextMessage = async () => {
-  console.log('this happend');
   if (form.value.text) {
     form.value.loading = true;
     // add a new Text Message
@@ -529,8 +532,8 @@ const sendTextMessage = async () => {
         },
         onResponse({response}) {
           if (response.status === 200) {
-            form.value.text            = '';
-            form.value._replyToMessage = undefined;
+            form.value.text = '';
+            clearFormTop();
             messengerStore.addMessage(response._data);
             form.value.loading = false;
           } else {
@@ -552,7 +555,7 @@ const sendTextMessage = async () => {
             form.value.loading = false;
             clearFormTop();
           } else {
-            $notify('مشکلی در ارسال پیام به وجود آمد', 'error');
+            $notify('مشکلی در ویرایش پیام به وجود آمد', 'error');
             form.value.loading = false;
           }
         }
@@ -745,6 +748,13 @@ const editMessage = (_message) => {
   form.value.action    = 'edit';
 };
 
+const replyMessage = (_message) => {
+  form.value._replyToMessage = _message;
+  if (formTop.value.action !== 'edit') {
+    formTop.value.action = 'reply';
+  }
+};
+
 const clearFormTop = () => {
   if (formTop.value.action === 'edit') {
     if (form.value._replyToMessage) {
@@ -810,6 +820,17 @@ messengerStore.$onAction(({name, store, args}) => {
             chatContent.value.scrollTop = scrollTop;
           });
         });
+
+        // check replyMessage or editMessage
+        // edit
+        if (args[0]._id === form.value._id) {
+          clearFormTop();
+        }
+        // reply
+        if (args[0]._id === form.value._replyToMessage) {
+          clearFormTop();
+        }
+
       }
       break;
     case 'deleteConversation':

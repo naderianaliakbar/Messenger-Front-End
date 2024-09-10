@@ -89,6 +89,7 @@ export const useMessengerStore = defineStore('messenger', {
             this.messages[message._conversation][message._id]['updatedAt']     = message.updatedAt;
             this.messages[message._conversation][message._id]['_conversation'] = message._conversation;
 
+            // _readBy
             if (this.messages[message._conversation][message._id]['_readBy']) {
                 message._readBy.forEach((userId) => {
                     this.readMessage({
@@ -101,8 +102,13 @@ export const useMessengerStore = defineStore('messenger', {
             }
 
             // check isEdited
-            if (message.isEdited) {
+            if ('isEdited' in message) {
                 this.messages[message._conversation][message._id]['isEdited'] = message.isEdited;
+            }
+
+            // check _replyToMessage
+            if ('_replyToMessage' in message) {
+                this.messages[message._conversation][message._id]['_replyToMessage'] = message._replyToMessage;
             }
 
             // add uploading if exists
