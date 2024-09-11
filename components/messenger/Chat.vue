@@ -69,6 +69,7 @@
           <!--     ContextMenu      -->
           <v-menu
               v-model="messageContextMenu.show"
+              id="messageContextMenu"
               :style="messageContextMenu.style"
               :min-width="150"
               class="mr-n5"
@@ -154,7 +155,7 @@
                   class="mr-1 ml-1"
                   size="40"
                   :color="user.color"
-                  :online="user.online"
+                  :online="true"
                   :firstName="user.firstName"
                   :lastName="user.lastName"
                   :avatars="user.avatars">
@@ -417,6 +418,7 @@ const deleteMessageDialog   = ref({
   _id : undefined
 });
 
+
 // if conversation type is private
 const contact = ref(null);
 
@@ -457,8 +459,8 @@ const getConversationName = () => {
 };
 
 const getLastSeenText = (lastSeen) => {
-  if(lastSeen) {
-    if(lastSeen === 'recently') {
+  if (lastSeen) {
+    if (lastSeen === 'recently') {
       return 'آخرین بازدید اخیرا';
     } else {
       const nowDate   = new PersianDate();
@@ -725,13 +727,14 @@ const fileViewerPrevious = () => {
   fileViewerMessage.value = conversationFiles.value[fileViewerMessageIndex.value - 1]._id;
 };
 
-const openMessageContextMenu = (event, messageId) => {
+const openMessageContextMenu = async (event, messageId) => {
   event.preventDefault();
   messageContextMenu.value._id   = messageId;
   messageContextMenu.value.x     = event.clientX;
   messageContextMenu.value.y     = event.clientY;
-  messageContextMenu.value.style = {right: `${window.innerWidth - event.clientX}px`, top: `${event.clientY}px`};
+  messageContextMenu.value.style = {right: `${window.innerWidth - messageContextMenu.value.x}px`, top: `${messageContextMenu.value.y}px`};
   messageContextMenu.value.show  = true;
+
 };
 
 const getMessage = (messageId) => {

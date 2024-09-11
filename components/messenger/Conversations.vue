@@ -116,6 +116,18 @@
           <span v-if="getConversationLastMessage(conversation).type === 'text'">
             {{ getConversationLastMessage(conversation).content }}
           </span>
+          <span v-if="getConversationLastMessage(conversation).type === 'image'">
+            تصویر
+          </span>
+          <span v-if="getConversationLastMessage(conversation).type === 'video'">
+            ویدئو
+          </span>
+          <span v-if="getConversationLastMessage(conversation).type === 'audio'">
+            صدا
+          </span>
+          <span v-if="getConversationLastMessage(conversation).type === 'file'">
+            فایل
+          </span>
         </v-list-item-subtitle>
 
         <template v-slot:append>
