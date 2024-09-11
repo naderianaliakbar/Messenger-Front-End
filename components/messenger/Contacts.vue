@@ -92,8 +92,8 @@
 
     <!--  Empty List   -->
     <v-row v-if="!list.length && !loading && !searchFlag" class="h-100 text-subtitle-1">
-      <v-col cols="12" class="text-center my-0">هیچ مخاطبی ندارید.</v-col>
-      <v-col cols="12" class="text-center my-n5">میتوانید با کلیک روی دکمه زیر مخاطب اضافه کنید.</v-col>
+      <v-col cols="12" class="text-center my-0">هیچ مخاطبی ندارید</v-col>
+      <v-col cols="12" class="text-center my-n5">میتوانید با کلیک روی دکمه زیر مخاطب اضافه کنید</v-col>
       <v-col cols="12" class="text-center">
         <v-btn class="mt-5 rounded-xl"
                prepend-icon="mdi-account-plus-outline"

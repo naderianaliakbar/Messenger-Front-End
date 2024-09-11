@@ -89,6 +89,20 @@
       </v-list>
     </v-menu>
 
+    <!--  Empty List   -->
+    <v-row v-if="!Object.values(listOfConversations).length && !loading" class="h-100 text-subtitle-1">
+      <v-col cols="12" class="text-center my-0">هیچ گفتگویی ندارید</v-col>
+      <v-col cols="12" class="text-center my-n5">با انتخاب مخاطب خود گفتگویی را شروع کنید</v-col>
+      <v-col cols="12" class="text-center">
+        <v-btn class="mt-5 mb-2 rounded-xl"
+               prepend-icon="mdi-account-outline"
+               @click="goToContacts"
+               color="secondary">
+          مخاطبین
+        </v-btn>
+      </v-col>
+    </v-row>
+
     <!--  Chats List    -->
     <v-list class="listHeight mt-0 pb-5 mb-0 overflow-auto">
 
