@@ -1,11 +1,11 @@
 module.exports = {
     apps: [
         {
-            name: 'Zero',
+            name: 'Messenger-FrontEnd',
+            port: '443',
             exec_mode: 'cluster',
-            instances: 'max', // Or a number of instances
-            script: '.output/server/index.mjs',
-            args: 'start'
+            instances: 'max',
+            script: './.output/server/index.mjs'
         }
     ]
-}
+};

@@ -1,11 +1,16 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 
 export default defineNuxtConfig({
-    title: 'Zero',
+    title: 'Exoroya',
 
     devServer: {
         host: '0.0.0.0',
         port: 3000
+    },
+
+    server: {
+        port: 443,
+        host: '0.0.0.0',
     },
 
     app: {
@@ -13,7 +18,7 @@ export default defineNuxtConfig({
             link: [
                 {rel: 'icon', type: 'image/x-icon', href: 'favicon.ico'}
             ],
-            title: 'فروشگاه زیرو'
+            title: 'Exoroya'
         },
         meta: [
             {
@@ -36,7 +41,8 @@ export default defineNuxtConfig({
     css: [
         'vuetify/lib/styles/main.sass',
         '@mdi/font/css/materialdesignicons.min.css',
-        'assets/css/style.scss'
+        'assets/css/style.scss',
+        'assets/css/fontiran.css'
     ],
 
     build: {
@@ -61,7 +67,7 @@ export default defineNuxtConfig({
                 'font-src': ["'self'", 'https:', 'data:'],
                 'form-action': ["'self'"],
                 'frame-ancestors': ["'self'"],
-                'img-src': ["'self'", 'data:', 'blob:', 'https:', 'http://localhost:5000/'],
+                'img-src': ["'self'", 'data:', 'blob:', 'https:', process.env.API_BASE_URL],
                 'object-src': ["'none'"],
                 'script-src-attr': ["'none'"],
                 'style-src': ["'self'", 'https:', "'unsafe-inline'"],
