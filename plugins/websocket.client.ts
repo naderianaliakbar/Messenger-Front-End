@@ -10,7 +10,7 @@ export default defineNuxtPlugin(nuxtApp => {
         let options = {
             secure: true,
             transports: ['websocket'],
-            path: '/socket.io',
+            path: '/api/socket.io',
         };
 
         if (token.value) {
