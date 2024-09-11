@@ -163,7 +163,14 @@ const form       = ref({
 });
 const rules      = {
   notEmpty       : (value) => (value ? true : 'پر کردن این فیلد اجباری است'),
-  phone          : (value) => (value.length === 11 ? true : 'شماره موبایل باید ۱‍۱ رقمی باشد'),
+  phone          : (value) => {
+    const phoneRegex = /^0\d{10}$/;
+    if(phoneRegex.test(value)) {
+      return true;
+    } else {
+      return 'فرمت شماره تلفن وارد شده اشتباه است';
+    }
+  },
   password       : (value) => {
     const hasUpperCase = /[A-Z]/.test(value);
     const hasLowerCase = /[a-z]/.test(value);
@@ -189,7 +196,7 @@ const changeStep = (val) => {
 };
 
 const startTimer = () => {
-  timer.value.minutes = 4;
+  timer.value.minutes = 1;
   timer.value.second  = 60;
   timer.value.active  = true;
   timer.value.counter = setInterval(() => {
