@@ -12,6 +12,7 @@
     "@mdi/font": "^7.2.96",
     "axios": "^1.7.7",
     "jsonwebtoken": "^9.0.2",
+    "nuxt-font-loader": "^2.3.5",
     "persian-date": "^1.1.0",
     "pinia": "^2.1.4",
     "pinia-plugin-persistedstate": "^3.2.1",

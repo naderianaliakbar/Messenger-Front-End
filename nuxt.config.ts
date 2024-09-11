@@ -37,7 +37,17 @@ export default defineNuxtConfig({
         baseURL: '/'
     },
 
-    modules: ['nuxt-security'],
+    modules: ['nuxt-security','nuxt-font-loader'],
+
+    // fonts
+    fontLoader: {
+        local: [
+            {
+                src: '/fonts/woff2/IRANSansWeb(FaNum).woff2',
+                family: 'IRANSans'
+            }
+        ]
+    },
 
 
     plugins: [],
