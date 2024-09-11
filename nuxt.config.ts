@@ -33,8 +33,12 @@ export default defineNuxtConfig({
         layoutTransition: {
             name: 'fade',
             mode: 'out-in' // default
-        }
+        },
+        baseURL: '/'
     },
+
+    modules: ['nuxt-security'],
+
 
     plugins: [],
 
@@ -47,9 +51,8 @@ export default defineNuxtConfig({
 
     build: {
         transpile: ['vuetify'],
+        extractCSS: true
     },
-
-    modules: ['nuxt-security'],
 
     buildModules: [],
 
