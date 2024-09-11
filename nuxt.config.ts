@@ -45,7 +45,9 @@ export default defineNuxtConfig({
     css: [
         'vuetify/lib/styles/main.sass',
         '@mdi/font/css/materialdesignicons.min.css',
-        'assets/css/style.scss'
+        'assets/css/style.scss',
+        'plyr/dist/plyr.css',
+        'assets/css/fontiran.css'
     ],
 
     build: {
