@@ -6,7 +6,7 @@
       <VCard flat :max-width="500" class="mt-12 mt-sm-0 pa-4">
         <!-- Welcome -->
         <v-card-text>
-          <h5 class="text-h5 mb-1">به فروشگاه زیرو خوش آمدید! 👋🏻</h5>
+          <h5 class="text-h5 mb-1">به پیام رسان خوش آمدید! 👋🏻</h5>
           <p class="mb-0">لطفا وارد حساب کاربری خود شوید</p>
           <v-divider class="mt-5 mb-n4"></v-divider>
         </v-card-text>
