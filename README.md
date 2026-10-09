@@ -1,29 +1,22 @@
-## 💻 Messenger Front-End
+# Messenger — Front End
 
-A modern single-page application (SPA) built with React.js to provide seamless, real-time chat experiences.
+A Persian-language messaging interface built with **Nuxt 3 / Vue 3**. It connects to the [Messenger back end](https://github.com/naderianaliakbar/Messenger-Back-End) for authentication, conversations, contacts, messages and real-time updates.
 
-### 🚀 Features
+## Features
 
-* User authentication and session management
-* Real-time messaging interface via Socket.IO
-* Conversation list and individual chat views
-* Responsive design using modern CSS or UI framework (e.g., Tailwind, Material-UI)
-* State management (Context API or Redux)
-* API integration with the back-end server
-* Loading states, error handling, and form validation
+- Phone-number login flow with OTP/password screens.
+- Conversation list, contact management and chat interface.
+- Message replies, deletion dialogs and file upload/viewer components.
+- Socket.IO real-time connection, notifications and persisted browser state.
+- Responsive Vuetify interface with Persian-language styling.
 
-### ⚙️ Tech Stack
+## Technology
 
-| Front-End Layer   | Technology                               |
-| ----------------- | ---------------------------------------- |
-| Framework         | React.js (functional components + hooks) |
-| Routing           | React Router                             |
-| State Management  | Context API or Redux                     |
-| WebSocket Library | Socket.IO Client                         |
-| HTTP Requests     | Axios or fetch API                       |
-| Styling           | CSS Modules / Tailwind / Material‑UI     |
+Nuxt 3, Vue 3, Vuetify 3, Pinia, Axios/`$fetch`, Socket.IO Client 4, Sass, VeeValidate and IndexedDB (client-side plugin).
 
-### 🧩 Installation & Setup
+## Run locally
+
+Requires Node.js and npm or Yarn, plus a running [Messenger back end](https://github.com/naderianaliakbar/Messenger-Back-End).
 
 ```bash
 git clone https://github.com/naderianaliakbar/Messenger-Front-End.git
@@ -31,68 +24,49 @@ cd Messenger-Front-End
 npm install
 ```
 
-Copy `.env.example` to `.env` and configure:
+Set environment variables for `nuxt.config.ts` (for example in a local `.env`):
 
 ```dotenv
-REACT_APP_API_URL=http://localhost:5000
+API_BASE_URL=http://localhost:5000
+SOCKET_URL=http://localhost:5000
+STATICS_URL=http://localhost:5000/static
+TOKEN_SECRET=replace-with-your-server-side-secret
 ```
 
-### 🏁 Running the App (Development)
+`API_BASE_URL`, `SOCKET_URL` and `STATICS_URL` are exposed via Nuxt **public runtime config**. **Never put secrets into public variables.** `TOKEN_SECRET` is declared in private runtime config; examine its server-side use before supplying a value. The sample values are illustrative and must match the server's configuration, routes and static-file URL.
 
 ```bash
-npm start
+npm run dev
 ```
 
-App will be accessible at `http://localhost:3000`.
-
-### 🛠️ Features & UI Components
-
-* **Authentication**
-
-  * Login & signup forms with error handling
-* **Home Screen**
-
-  * Sidebar listing all user conversations
-* **Chat Window**
-
-  * Shows message history for the selected conversation
-  * Real-time updates for new messages, typing indicators
-  * Input form for sending messages
-* **New Conversation**
-
-  * Modal or separate view to start chats with other users
-
-### 🧪 Testing
-
-Optionally add tests with Jest and React Testing Library:
+The development server is configured on port `3000` in `nuxt.config.ts`. To build and preview:
 
 ```bash
-npm test
+npm run build
+npm run preview
 ```
 
-### 📘 Project Structure
+Other supported scripts: `npm run generate`. No automated test script is defined.
 
+## Project map
+
+```text
+pages/                 Login and messenger views
+components/messenger/  Chat, contacts, conversations, attachments, dialogs
+store/                 Messenger and notification state
+plugins/               API, WebSocket, Pinia, Vuetify, IndexedDB
+composables/           API helper
+middleware/            Authentication check
+nuxt.config.ts         Runtime settings, development server and security headers
 ```
-src/
-├── components/       # Reusable UI components
-├── contexts/         # Auth, Chat state management
-├── hooks/            # Custom React hooks
-├── pages/            # Route-based components
-├── services/         # API and WebSocket logic
-├── styles/           # CSS or theme files
-└── index.js
-```
 
-### 💡 Usage Tips
+## Integration notes
 
-* Ensure `REACT_APP_API_URL` matches your back-end server URL
-* Wrap the app with Auth and Chat Providers for global state
-* Use proper cleanup for Socket.IO to prevent memory leaks
+- `plugins/api.ts` attaches the token cookie to API requests as an Authorization bearer token.
+- `plugins/websocket.client.ts` opens a WebSocket-only Socket.IO connection using `SOCKET_URL`.
+- The UI depends on the back end's auth/session and messaging response formats; start both repositories together.
+- `nuxt-security` sets security headers/CSP, so additional remote hosts may require explicitly reviewing the configuration.
 
-### 🤝 Contribution
+## License
 
-Contributions are welcome! Fork the repo, create topic branches, and send pull requests. Please follow coding standards, linting, and add tests when possible.
-
-### 📄 License
-
-This project is licensed under the MIT License.
+No license file is included in this repository.
